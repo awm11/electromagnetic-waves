@@ -390,8 +390,11 @@ import "./style.css";
     const pe = eAt(PROBE);
     if (Math.abs(pe) > 0.05) {
       const ep = [PROBE, rod.mid - pe * AL], bp = [PROBE + BDIR[0] * pe * AL, rod.mid + BDIR[1] * pe * AL];
+      // Rounded shaft ends so the two arrows meet cleanly at their shared starting point.
+      mx.lineCap = "round";
       arrow(mx, PROBE, rod.mid, bp[0], bp[1], PROBE_B, 5, 16);
       arrow(mx, PROBE, rod.mid, ep[0], ep[1], PROBE_E, 5, 16);
+      mx.lineCap = "butt";
       const se = Math.sign(pe), m = 13, bl = Math.hypot(BDIR[0], BDIR[1]);
       const u1 = [0, -se], u2 = [BDIR[0] / bl * se, BDIR[1] / bl * se];
       mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.beginPath();
