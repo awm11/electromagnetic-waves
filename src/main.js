@@ -710,7 +710,10 @@ import "./style.css";
   }
 
   const DX0 = 300, DX1 = 1070, DROWS = [{ y: 18, h: 92 }, { y: 122, h: 104 }, { y: 238, h: 104 }, { y: 354, h: 150 }];
-  const KEYR = { x: 34, y: 170, w: 210, h: 120 };
+  const KEYR = { x: 34, y: 170, w: 210, h: 120 }, CLEARB = { x: 34 + 210 - 50, y: 386 + 7, w: 44, h: 22 };
+  const onClear = (x, y) => x >= CLEARB.x - 6 && x <= CLEARB.x + CLEARB.w + 6 && y >= CLEARB.y - 6 && y <= CLEARB.y + CLEARB.h + 6;
+  // Forget the decoded message: decoding starts afresh from the next tap.
+  function dClear() { dMsgIdx = dn; dLetters = []; dFrozen = true; }
   function drawMorseKey(pressed) {
     const { x, y, w } = KEYR, by = y + 92;
     rr(mx, x, by, w, 24, 6); mx.fillStyle = "#8a5a3c"; mx.fill(); mx.strokeStyle = "#5e3c27"; mx.lineWidth = 1.5; mx.stroke();
@@ -803,19 +806,24 @@ import "./style.css";
     if (dt - dLastOn < dBreak() + 0.5 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= dBreak() + 0.5; }
     const letters = dLetters, bx = 34, by = 386, bw = 210, bh = 104;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
-    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText("Decoded message", bx + 14, by + 18);
+    { // "clear" button forgets the message
+      rr(mx, CLEARB.x, CLEARB.y, CLEARB.w, CLEARB.h, 11); mx.fillStyle = "#ffffff"; mx.fill(); mx.strokeStyle = "#c6ccd3"; mx.lineWidth = 1; mx.stroke();
+      mx.font = `700 12px ${FONT}`; mx.fillStyle = COL.blue; mx.textAlign = "center"; mx.textBaseline = "middle";
+      mx.fillText("clear", CLEARB.x + CLEARB.w / 2, CLEARB.y + CLEARB.h / 2 + 1);
+    }
     // Each letter, with the dots and dashes the decoder heard underneath; a letter still being tapped shows in grey.
-    const pend = letters.pending || "", shown = letters.slice(pend ? -4 : -5).map(l => ({ ...l, p: false }));
+    const pend = letters.pending || "", limit = dMsgManual ? 3 : 8, shown = letters.slice(-(pend ? limit - 1 : limit)).map(l => ({ ...l, p: false }));
     if (pend) shown.push({ c: pend === "?" ? "?" : "…", code: pend === "?" ? "" : pend, p: true });
     const sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join("");
     mx.textBaseline = "middle"; mx.textAlign = "center";
     if (!shown.length) { mx.font = `800 34px ${FONT}`; mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 56); }
     else {
-      const gap = 40, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
+      const gap = shown.length > 1 ? Math.min(40, (bw - 36) / (shown.length - 1)) : 40, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
       shown.forEach((l, i) => {
         const xx = x0 + i * gap;
-        mx.font = `800 30px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : l.c === "?" ? "#e8281e" : COL.ink; mx.fillText(l.c, xx, by + 52);
-        mx.font = `800 12px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : COL.muted; mx.fillText(sym(l.code), xx, by + 82);
+        mx.font = `800 ${gap < 34 ? 24 : 30}px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : l.c === "?" ? "#e8281e" : COL.ink; mx.fillText(l.c, xx, by + 52);
+        mx.font = `800 ${gap < 34 ? 10 : 12}px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : COL.muted; mx.fillText(sym(l.code), xx, by + 82);
       });
     }
   }
@@ -827,11 +835,17 @@ import "./style.css";
     }
   });
   const dRelease = () => { dManual = false; };
+  const dPos = e => { const b = main.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * H / b.height]; };
+  const onKey = (x, y) => x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h;
+  main.addEventListener("click", e => { if (view === "sending-data" && onClear(...dPos(e))) dClear(); });
+  // Plain mouse events too, for browsers that don't send pointer events.
+  main.addEventListener("mousedown", e => { if (view === "sending-data" && onKey(...dPos(e))) dManual = true; });
+  window.addEventListener("mouseup", dRelease);
   main.addEventListener("pointerup", dRelease); main.addEventListener("pointercancel", dRelease); main.addEventListener("lostpointercapture", dRelease);
   main.addEventListener("pointermove", e => {
     if (view !== "sending-data") { main.style.cursor = "default"; return; }
     const b = main.getBoundingClientRect(), x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
-    main.style.cursor = x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h ? "pointer" : "default";
+    main.style.cursor = onClear(x, y) || x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h ? "pointer" : "default";
   });
   window.addEventListener("keydown", e => {
     if (view !== "sending-data" || e.code !== "Space") return;
@@ -1046,6 +1060,7 @@ import "./style.css";
     document.querySelectorAll("[data-dfreq]").forEach(x => x.classList.toggle("on", x === b));
     dPrime();
   }));
-  document.getElementById("sosBtn").addEventListener("click", () => { dSos = dt + 0.05; });
+  // Each Send SOS starts a fresh decoded message.
+  document.getElementById("sosBtn").addEventListener("click", () => { dSos = dt + 0.05; dMsgIdx = dn; dMsgManual = false; dLetters = []; dFrozen = false; });
   requestAnimationFrame(loop);
 })();
