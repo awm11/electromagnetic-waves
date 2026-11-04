@@ -964,10 +964,12 @@ import "./style.css";
       }
       return;
     }
-    if (shownF !== freq) {
-      shownF = freq;
+    const fkey = mode + freq;
+    if (shownF !== fkey) {
+      shownF = fkey;
       const hi = freq === F2;
-      statusText.textContent = hi ? "200 kHz • higher frequency" : "100 kHz • lower frequency";
+      // "lower" and "higher" only mean something when the frequency is changing between the two.
+      statusText.textContent = mode === "steady" ? "Frequency: 100 kHz" : hi ? "200 kHz • higher frequency" : "100 kHz • lower frequency";
       dot.classList.toggle("on", hi);
       lessonF.textContent = hi ? "200,000 Hz (200 kHz): 200,000 complete cycles every second" : "100,000 Hz (100 kHz): 100,000 complete cycles every second";
       lessonF.className = hi ? "hi" : "lo";
