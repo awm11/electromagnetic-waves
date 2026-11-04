@@ -47,7 +47,7 @@ import "./style.css";
     HS[n % BUF] = amp * Math.cos(phase);
     flowOff -= HI[n % BUF] * DT * 180;
     n++;
-    rxFlow -= RX_AMP * ret(HS, RX_DEL) * DT * 180 * 3;
+    rxFlow += RX_AMP * ret(HS, RX_DEL) * DT * 180 * 3;  // received current follows the radiated E (see eAt)
   }
   function ret(buf, delay) {
     const idx = (n - 1) - delay / DT;
@@ -245,7 +245,9 @@ import "./style.css";
   const WX0 = 320, WX1 = 1050, PROBE = 570;
   // A thick wire standing in the wave's path, with one electron in it.
   const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
-  function eAt(x) { return ret(HS, (x - rod.x) / V); }
+  // Radiated E points opposite to the change in the aerial current (HI is the current, HS its rate of change),
+  // so E is up while the upward current is falling. B then follows from E for a wave travelling right.
+  function eAt(x) { return -ret(HS, (x - rod.x) / V); }
   let showWire = true;
   const BDIR = [-0.82, 0.46], PROBE_E = "#0d47a8", PROBE_B = "#99124a";
 
@@ -295,7 +297,7 @@ import "./style.css";
       const col = ringCol(q), fx = rod.x, fy = RY + r * PS * PD / (PD - r * PC);
       mx.strokeStyle = col; mx.lineWidth = 2.5; ringArc(RY, r, 0, Math.PI);
       {
-        const d = I >= 0 ? -1 : 1;
+        const d = I >= 0 ? 1 : -1;  // right-hand grip rule: upward current gives anticlockwise rings seen from above
         [0.25 * Math.PI - Math.PI / 9, 1.25 * Math.PI - Math.PI / 9].forEach(t0 => {
           const c = proj(RY, r, t0), p1 = proj(RY, r, t0 + 0.01), p0 = proj(RY, r, t0 - 0.01);
           const hs = Math.sin(t0) > 0 ? 12 : 10.5;
@@ -367,7 +369,7 @@ import "./style.css";
       const gc = mx.createLinearGradient(cx - hw, 0, cx + hw, 0);
       gc.addColorStop(0, "#e2a868"); gc.addColorStop(0.5, "#f3cc9c"); gc.addColorStop(1, "#d79a5b");
       mx.fillStyle = gc; mx.fill(); mx.stroke();
-      const ey2 = rod.mid + 42 * (F1 / freq) * ret(HI, d);
+      const ey2 = rod.mid - 42 * (F1 / freq) * ret(HI, d);
       if (Math.abs(ew) > 0.05) arrow(mx, cx, ey2 + Math.sign(ew) * 13, cx, ey2 + Math.sign(ew) * (13 + 42 * Math.abs(ew)), "#1d3f73", 3, 10);
       mx.beginPath(); mx.arc(cx, ey2, 11, 0, TWO_PI); mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.5; mx.stroke();
       seg(mx, cx - 5, ey2, cx + 5, ey2, "#1d3f73", 2.2);
@@ -908,9 +910,9 @@ import "./style.css";
     panel(0, 3, w, h, "Current in transmitter", fTag, fCol, COL.current, b => ret(HI, b), 1);
     if (view === "field-map") {
       const d = Math.hypot(R.x - T.x, R.y - G) / V, a = ampAt(R.x, R.y);
-      panel(w + gap, 3, w, h, "Current in receiving aerial", "", COL.muted, COL.green, b => a * ret(HS, b + d), 3);
+      panel(w + gap, 3, w, h, "Current in receiving aerial", "", COL.muted, COL.green, b => -a * ret(HS, b + d), 3);
     } else {
-      panel(w + gap, 3, w, h, "Electric field at the marked point", "", COL.muted, COL.blue, b => ret(HS, b + (PROBE - rod.x) / V), 1);
+      panel(w + gap, 3, w, h, "Electric field at the marked point", "", COL.muted, COL.blue, b => -ret(HS, b + (PROBE - rod.x) / V), 1);
     }
   }
 
