@@ -981,7 +981,6 @@ import "./style.css";
     document.getElementById("wireBtn").hidden = view !== "inside-the-wave";
     document.getElementById("statusBox").hidden = hill;
     document.getElementById("footMain").hidden = hill || encv || data;
-    document.getElementById("footEnc").hidden = !encv;
     document.getElementById("dykEnc").hidden = !encv;
     shownF = 0;
   }
