@@ -342,10 +342,21 @@ import "./style.css";
 
     { // The electron is pushed the opposite way to E (it has negative charge), so it oscillates up and down in the wire.
       const d = (WIRE.x - rod.x) / V, ew = eAt(WIRE.x), cx = WIRE.x;
-      rr(mx, cx - WIRE.w / 2, WIRE.top, WIRE.w, WIRE.bot - WIRE.top, WIRE.w / 2);
-      const g = mx.createLinearGradient(cx - WIRE.w / 2, 0, cx + WIRE.w / 2, 0);
+      // A cylinder: shaded body with a curved bottom edge, and a flat elliptical cap on top showing the cut end.
+      const hw = WIRE.w / 2, cy = 7;
+      mx.beginPath();
+      mx.moveTo(cx - hw, WIRE.top); mx.lineTo(cx - hw, WIRE.bot);
+      mx.ellipse(cx, WIRE.bot, hw, cy, 0, Math.PI, 0, true);
+      mx.lineTo(cx + hw, WIRE.top);
+      mx.ellipse(cx, WIRE.top, hw, cy, 0, 0, Math.PI, true);
+      mx.closePath();
+      const g = mx.createLinearGradient(cx - hw, 0, cx + hw, 0);
       g.addColorStop(0, "#c98a4b"); g.addColorStop(0.45, "#f0c08a"); g.addColorStop(1, "#b0733a");
       mx.fillStyle = g; mx.fill(); mx.strokeStyle = "#8a5a2b"; mx.lineWidth = 1.5; mx.stroke();
+      mx.beginPath(); mx.ellipse(cx, WIRE.top, hw, cy, 0, 0, TWO_PI);
+      const gc = mx.createLinearGradient(cx - hw, 0, cx + hw, 0);
+      gc.addColorStop(0, "#e2a868"); gc.addColorStop(0.5, "#f3cc9c"); gc.addColorStop(1, "#d79a5b");
+      mx.fillStyle = gc; mx.fill(); mx.stroke();
       const ey2 = rod.mid + 42 * (F1 / freq) * ret(HI, d);
       if (Math.abs(ew) > 0.05) arrow(mx, cx, ey2 + Math.sign(ew) * 13, cx, ey2 + Math.sign(ew) * (13 + 42 * Math.abs(ew)), "#1d3f73", 3, 10);
       mx.beginPath(); mx.arc(cx, ey2, 11, 0, TWO_PI); mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.5; mx.stroke();
