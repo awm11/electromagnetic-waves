@@ -555,13 +555,13 @@ import "./style.css";
 
   // ---- Sending data: on-off keying with a Morse key, fixed noise, and a real decoder ----
   const DDT = 1 / 240, DBUF = 2400, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
-  const DFREQ = { low: 2, medium: 8, high: 18 };
+  const DFREQ = { low: 2, medium: 7.5, high: 18 };
   const MORSE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z" };
   // SOS in Morse units: dot = 1, dash = 3, gap inside a letter = 1, gap between letters = 3.
   const SOS_ON = [[0, 1], [2, 3], [4, 5], [8, 11], [12, 15], [16, 19], [22, 23], [24, 25], [26, 27]];
   const sosOn = t => SOS_ON.some(([a, b]) => t >= a * DU && t < b * DU);
   const dKey = new Float32Array(DBUF), dTX = new Float32Array(DBUF), dRX = new Float32Array(DBUF), dEN = new Float32Array(DBUF), dPI = new Float32Array(DBUF), dPQ = new Float32Array(DBUF);
-  let dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
+  let dLetters = [], dFrozen = false, dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
   const dWinN = () => Math.round(2 / DFREQ[dFreq] / DDT);
   let gSpare = null;
   const gauss = () => {
@@ -586,7 +586,7 @@ import "./style.css";
   }
   function dReset() {
     [dKey, dTX, dRX, dEN, dPI, dPQ].forEach(b => b.fill(0));
-    dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLastOn = -10; dMsgIdx = 0; dSos = null; dManual = false;
+    dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLastOn = -10; dMsgIdx = 0; dSos = null; dManual = false; dLetters = []; dFrozen = false;
   }
   function dPrime() {
     dReset(); dSos = 0.55;
@@ -691,9 +691,10 @@ import "./style.css";
     mx.fillStyle = "rgba(232,40,30,0.08)"; mx.fillRect(DX0, ey(HI_T), DX1 - DX0, ey(LO_T) - ey(HI_T));
     mx.setLineDash([4, 4]); seg(mx, DX0, ey(HI_T), DX1, ey(HI_T), "#e8a29e", 1); seg(mx, DX0, ey(LO_T), DX1, ey(LO_T), "#e8a29e", 1); mx.setLineDash([]);
     seg(mx, DX0, bot, DX1, bot, "#c6ccd3", 1);
+    const bandMid = (ey(HI_T) + ey(LO_T)) / 2;
     mx.font = `600 12px ${FONT}`; mx.fillStyle = "#b91c1c"; mx.textAlign = "right"; mx.textBaseline = "middle";
-    mx.fillText("can't tell", DX1 - 6, (ey(HI_T) + ey(LO_T)) / 2);
-    mx.fillStyle = COL.muted; mx.font = `13px ${FONT}`; mx.fillText("yes", DX0 - 8, ey(1)); mx.fillText("no", DX0 - 8, bot);
+    mx.fillText("can't", DX0 - 8, bandMid - 7); mx.fillText("tell", DX0 - 8, bandMid + 7);
+    mx.fillStyle = COL.muted; mx.font = `13px ${FONT}`; mx.fillText("1", DX0 - 8, ey(1)); mx.fillText("0", DX0 - 8, bot);
     const K = 1000, sy = bot + 10, sh = 12, D = dDecisions();
     mx.strokeStyle = "#6d4bd1"; mx.lineWidth = 2.5; mx.lineJoin = "round"; mx.beginPath(); let st = false;
     for (let k = 0; k <= K; k++) {
@@ -721,7 +722,9 @@ import "./style.css";
     tLabel(mx, DX1 + 14, r4.y + r4.h - 4);
 
     // Decoded message box
-    const letters = dDecode(D), bx = 34, by = 386, bw = 210, bh = 104;
+    // Once a message has finished arriving, keep showing what was decoded, even after it scrolls out of memory.
+    if (dt - dLastOn < 2.2 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= 2.2; }
+    const letters = dLetters, bx = 34, by = 386, bw = 210, bh = 104;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
     const shown = letters.slice(-6);
