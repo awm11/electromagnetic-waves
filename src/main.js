@@ -400,8 +400,8 @@ import "./style.css";
       mx.lineCap = "butt"; mx.restore();
     });
 
-    pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
-    pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
+    pill(mx, "E: up and down, in the page", PROBE, 40, "center", COL.blue);
+    pill(mx, "B: into and out of the page", PROBE, 72, "center", COL.bfield);
     { // "travels away" label and arrow, centred across the frame
       mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "left"; mx.textBaseline = "middle";
       const txt = "travels away at the speed of light", tw = mx.measureText(txt).width, aw = 150, gap = 12, x0 = W / 2 - (tw + gap + aw) / 2;
