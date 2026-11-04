@@ -1005,7 +1005,7 @@ import "./style.css";
   // The paragraph under the title changes with the mode.
   const INTROS = {
     "field-map": "An alternating current in the transmitting mast makes a wave in the electric and magnetic fields. The wave travels outwards, and when it reaches another aerial it makes an alternating current there too.",
-    "inside-the-wave": "Zoom in on the wave itself: electric and magnetic fields oscillating at right angles to each other, travelling away from the transmitter at the speed of light. When the wave reaches a wire, its electric field pushes the electrons inside.",
+    "inside-the-wave": "Zoom in on the wave along one straight line: electric and magnetic fields oscillating at right angles to each other, travelling away from the transmitter at the speed of light. When the wave reaches a wire, its electric field pushes the electrons inside.",
     "over-the-hill": "Radio waves spread out when they pass the edge of an obstacle. Compare how a long wave and a shorter wave get over a hill to reach a house on the other side.",
     "encoding": "A steady radio wave carries no information. To send sound, the transmitter changes the carrier wave to match the sound signal, and the receiver decodes it back again.",
     "sending-data": "Digital data is sent as pulses: the carrier wave is switched on for a 1 and off for a 0. The frequency of the carrier limits how short the pulses can be, and so how quickly data can be sent."
