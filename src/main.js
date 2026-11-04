@@ -11,7 +11,7 @@ import "./style.css";
   const main = document.getElementById("main"), plots = document.getElementById("plots");
   let mx, px;
   const collapsed = [true, true], PHC = 46;
-  const plotH = () => PH;
+  const plotH = () => collapsed[0] && collapsed[1] ? PHC : PH;
   function setup() {
     const d = Math.min(window.devicePixelRatio || 1, 2);
     main.width = W * d; main.height = H * d; plots.width = W * d; plots.height = plotH() * d;
@@ -129,6 +129,17 @@ import "./style.css";
     smoothDraw(fVal, GW, fLut, fX, fY);
   }
 
+  // Key for the field colours, drawn on the dark ground strip at the bottom right.
+  function fieldKey() {
+    const bw = 150, bh = 10, x1 = W - 76, x0 = x1 - bw, y = H - 26;
+    const g = mx.createLinearGradient(x0, 0, x1, 0);
+    VIR.forEach((c, i) => g.addColorStop(i / (VIR.length - 1), `rgb(${c.join(",")})`));
+    rr(mx, x0, y - bh / 2, bw, bh, 3); mx.fillStyle = g; mx.fill(); mx.strokeStyle = "rgba(255,255,255,0.45)"; mx.lineWidth = 1; mx.stroke();
+    mx.font = `600 12px ${FONT}`; mx.fillStyle = "#e8ecf0"; mx.textBaseline = "middle";
+    mx.textAlign = "right"; mx.fillText("zero", x0 - 8, y);
+    mx.textAlign = "left"; mx.fillText("strong", x1 + 8, y);
+    mx.textAlign = "center"; mx.fillText("Field strength", (x0 + x1) / 2, y - 17);
+  }
   function rr(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
   function pill(c, text, x, y, align = "center", color = COL.ink) {
     c.font = `700 13px ${FONT}`;
@@ -176,6 +187,7 @@ import "./style.css";
     const I = HI[(n - 1) % BUF] || 0;
     drawMast(I, T.top, flowOff);
     drawHouse(R.x, G, rxFlow);
+    fieldKey();
   }
 
   function drawMast(I, tp, offs, mxp = T.x, bx = 34, bw = 112) {
@@ -542,6 +554,7 @@ import "./style.css";
     mx.stroke();
     drawMast(hTI[(hn - 1 + HBUF) % HBUF] || 0, G - HMAST, hflow, HMX, 6, 84);
     drawHouse(Rh.x, hTop(Rh.x), hrflow);
+    fieldKey();
     pill(mx, WAVES[wave].name + " · not to scale", W - 24, 30, "right");
   }
 
@@ -827,7 +840,7 @@ import "./style.css";
     const bx = 34, by = 214, bw = 210, bh = 112;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "middle"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
-    const shown = dLetters.slice(-8), sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join("");
+    const shown = dLetters.slice(-8), sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join(" ");
     if (!shown.length) { mx.font = `800 34px ${FONT}`; mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 60); }
     else {
       const gap = shown.length > 1 ? Math.min(44, (bw - 36) / (shown.length - 1)) : 44, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2, small = gap < 34;
@@ -839,7 +852,7 @@ import "./style.css";
     }
     // Morse reminder
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.fillText("SOS in Morse code", bx + bw / 2, by + bh + 34);
-    mx.font = `800 16px ${FONT}`; mx.fillStyle = COL.ink; mx.fillText("•••  –––  •••", bx + bw / 2, by + bh + 58);
+    mx.font = `800 16px ${FONT}`; mx.fillStyle = COL.ink; mx.fillText("• • •    – – –    • • •", bx + bw / 2, by + bh + 58);
   }
 
   const WINDOW = 3;
