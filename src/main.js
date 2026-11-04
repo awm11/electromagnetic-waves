@@ -553,6 +553,208 @@ import "./style.css";
     pill(mx, "Receiving aerial", ER.x, ER.top - 24);
   }
 
+  // ---- Sending data: on-off keying with a Morse key, fixed noise, and a real decoder ----
+  const DDT = 1 / 240, DBUF = 2400, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
+  const DFREQ = { low: 2, medium: 8, high: 18 };
+  const MORSE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z" };
+  // SOS in Morse units: dot = 1, dash = 3, gap inside a letter = 1, gap between letters = 3.
+  const SOS_ON = [[0, 1], [2, 3], [4, 5], [8, 11], [12, 15], [16, 19], [22, 23], [24, 25], [26, 27]];
+  const sosOn = t => SOS_ON.some(([a, b]) => t >= a * DU && t < b * DU);
+  const dKey = new Float32Array(DBUF), dTX = new Float32Array(DBUF), dRX = new Float32Array(DBUF), dEN = new Float32Array(DBUF), dPI = new Float32Array(DBUF), dPQ = new Float32Array(DBUF);
+  let dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
+  const dWinN = () => Math.round(2 / DFREQ[dFreq] / DDT);
+  let gSpare = null;
+  const gauss = () => {
+    if (gSpare !== null) { const g = gSpare; gSpare = null; return g; }
+    let u = 0, v = 0; while (u === 0) u = Math.random(); v = Math.random();
+    const r = Math.sqrt(-2 * Math.log(u)); gSpare = r * Math.sin(TWO_PI * v); return r * Math.cos(TWO_PI * v);
+  };
+  function dStep() {
+    dt += DDT;
+    const fq = DFREQ[dFreq];
+    const key = dManual || (dSos !== null && sosOn(dt - dSos)) ? 1 : 0;
+    if (key) { if (dt - dLastOn > 1.2) dMsgIdx = dn; dLastOn = dt; }
+    dph += TWO_PI * fq * DDT;
+    const tx = key * Math.sin(dph), rx = tx + DNOISE * gauss(), k = dn % DBUF;
+    dKey[k] = key; dTX[k] = tx; dRX[k] = rx;
+    // The decoder mixes the received signal with its own copy of the carrier and averages over two cycles.
+    const pi = rx * Math.cos(dph), pq = rx * Math.sin(dph), Nw = dWinN();
+    dPI[k] = pi; dPQ[k] = pq; dSI += pi; dSQ += pq;
+    if (dn >= Nw) { const j = (dn - Nw) % DBUF; dSI -= dPI[j]; dSQ -= dPQ[j]; }
+    dEN[k] = 2 * Math.hypot(dSI, dSQ) / Math.min(Nw, dn + 1);
+    dn++;
+  }
+  function dReset() {
+    [dKey, dTX, dRX, dEN, dPI, dPQ].forEach(b => b.fill(0));
+    dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLastOn = -10; dMsgIdx = 0; dSos = null; dManual = false;
+  }
+  function dPrime() {
+    dReset(); dSos = 0.55;
+    for (let i = 0; i < Math.round(7 / DDT); i++) dStep();
+  }
+  const dAt = (buf, back) => {
+    const idx = dn - 1 - back / DDT, i0 = Math.floor(idx), f = idx - i0;
+    if (i0 < 0 || dn - 1 - i0 >= DBUF - 1) return null;
+    const a = buf[i0 % DBUF], b = buf[(i0 + 1) % DBUF];
+    return a + (b - a) * f;
+  };
+  const LO_T = 0.3, HI_T = 0.7;
+  // The decoder's decisions, lined up with the key. It switches to 1 above the upper line and back to 0 below the
+  // lower line (so noise can't make it flicker), and marks "can't tell" wherever it lingers between the lines.
+  function dDecisions() {
+    const half = dWinN() >> 1, last = dn - 1 - half, m0 = Math.max(0, dn - DBUF + half + 2), minQ = Math.round(1.5 * dWinN());
+    const len = Math.max(0, last - m0 + 1), arr = new Int8Array(len);
+    let b = 0, bandStart = -1;
+    for (let i = 0; i < len; i++) {
+      const e = dEN[(m0 + i + half) % DBUF];
+      if (e > HI_T) b = 1; else if (e < LO_T) b = 0;
+      arr[i] = b;
+      if (e >= LO_T && e <= HI_T) { if (bandStart < 0) bandStart = i; }
+      else { if (bandStart >= 0 && i - bandStart >= minQ) arr.fill(2, bandStart, i); bandStart = -1; }
+    }
+    if (bandStart >= 0 && len - bandStart >= minQ) arr.fill(2, bandStart, len);
+    return { m0, arr, half };
+  }
+  // Read those decisions back as Morse letters.
+  function dDecode(D) {
+    const { m0, arr } = D, from = Math.max(0, dMsgIdx - m0);
+    const runs = [];
+    for (let i = from; i < arr.length; i++) {
+      const s = arr[i], r = runs[runs.length - 1];
+      if (r && r.s === s) r.n++; else runs.push({ s, n: 1 });
+    }
+    const letters = []; let cur = "", unsure = false;
+    const close = () => { if (cur || unsure) letters.push(unsure ? "?" : (MORSE[cur] || "?")); cur = ""; unsure = false; };
+    runs.forEach((r, i) => {
+      const sec = r.n * DDT;
+      if (r.s === 1) { if (sec > 1.4) unsure = true; else cur += sec < 0.4 ? "." : "-"; }
+      else if (r.s === 2) unsure = true;
+      else if (sec >= 0.45 && (i < runs.length - 1 || true)) close();
+    });
+    return letters;
+  }
+
+  const DX0 = 300, DX1 = 1070, DROWS = [{ y: 18, h: 92 }, { y: 122, h: 104 }, { y: 238, h: 104 }, { y: 354, h: 150 }];
+  const KEYR = { x: 34, y: 170, w: 210, h: 120 };
+  function drawMorseKey(pressed) {
+    const { x, y, w } = KEYR, by = y + 92;
+    rr(mx, x, by, w, 24, 6); mx.fillStyle = "#8a5a3c"; mx.fill(); mx.strokeStyle = "#5e3c27"; mx.lineWidth = 1.5; mx.stroke();
+    const px0 = x + 58, py0 = by - 16;
+    rr(mx, px0 - 14, py0, 28, 16, 3); mx.fillStyle = "#b08d57"; mx.fill(); mx.strokeStyle = "#7a6038"; mx.stroke();
+    const cx = x + w - 52;
+    rr(mx, cx - 10, by - 8, 20, 8, 2); mx.fillStyle = pressed ? "#e8281e" : "#b08d57"; mx.fill();
+    const ang = pressed ? 0.07 : -0.05, len = w - 40;
+    mx.save(); mx.translate(px0, py0 + 2); mx.rotate(ang);
+    rr(mx, -36, -6, len, 9, 4); mx.fillStyle = "#c9a35f"; mx.fill(); mx.strokeStyle = "#7a6038"; mx.lineWidth = 1.2; mx.stroke();
+    const kx = len - 66;
+    mx.beginPath(); mx.ellipse(kx, -14, 24, 10, 0, 0, TWO_PI); mx.fillStyle = "#2b3138"; mx.fill();
+    rr(mx, kx - 4, -10, 8, 8, 2); mx.fill();
+    mx.restore();
+    mx.beginPath(); mx.arc(px0, py0 + 2, 4, 0, TWO_PI); mx.fillStyle = "#7a6038"; mx.fill();
+    pill(mx, "Morse key", x + w / 2, y - 6);
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "middle";
+    mx.fillText("Press and hold to tap", x + w / 2, by + 44);
+    mx.fillText("(or hold the space bar)", x + w / 2, by + 62);
+  }
+  function dRowLabel(r, text, col) { mx.font = `600 14px ${FONT}`; mx.fillStyle = col; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(text, DX0, r.y + 10); }
+  function dTrace(buf, mid, amp, col, lw, clampV) {
+    const K = 1400; mx.strokeStyle = col; mx.lineWidth = lw; mx.lineJoin = "round"; mx.beginPath(); let started = false;
+    for (let k = 0; k <= K; k++) {
+      const v = dAt(buf, DWIN * (1 - k / K)); if (v === null) { started = false; continue; }
+      const vv = Math.max(-clampV, Math.min(clampV, v)), xx = DX0 + (DX1 - DX0) * k / K, yy = mid - vv * amp;
+      started ? mx.lineTo(xx, yy) : mx.moveTo(xx, yy); started = true;
+    }
+    mx.stroke();
+  }
+  function drawDataView() {
+    mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
+    mx.strokeStyle = COL.line; mx.lineWidth = 1.5; rr(mx, 0.75, 0.75, W - 1.5, H - 1.5, 12); mx.stroke();
+    const keyNow = dKey[(dn - 1 + DBUF) % DBUF] > 0.5;
+    drawMorseKey(keyNow);
+
+    const [r1, r2, r3, r4] = DROWS;
+    mx.setLineDash([4, 4]);
+    [[r1, r1.y + r1.h - 14], [r2, r2.y + 60], [r3, r3.y + 60]].forEach(([, yy]) => seg(mx, DX0, yy, DX1, yy, "#c6ccd3", 1));
+    mx.setLineDash([]);
+    dRowLabel(r1, "Key: 1 = on, 0 = off", COL.ink);
+    { const base = r1.y + r1.h - 14, hgt = 56;
+      mx.font = `13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right"; mx.fillText("1", DX0 - 8, base - hgt); mx.fillText("0", DX0 - 8, base);
+      dTrace(dKey, base, hgt, COL.ink, 2.5, 1); }
+    dRowLabel(r2, "Transmitted radio wave", COL.blue);
+    dTrace(dTX, r2.y + 60, 36, COL.blue, 1.6, 1);
+    dRowLabel(r3, "Received wave, with noise", COL.green);
+    dTrace(dRX, r3.y + 60, 22, COL.green, 1.3, 1.9);
+
+    // Decoder: its estimate of how much wave is present, lined up with the key above.
+    dRowLabel(r4, "Decoder: is the wave there?", "#6d4bd1");
+    const half = dWinN() / 2 * DDT, top = r4.y + 26, bot = r4.y + r4.h - 30, ey = e => bot - Math.min(1.25, e) / 1.25 * (bot - top);
+    mx.fillStyle = "rgba(232,40,30,0.08)"; mx.fillRect(DX0, ey(HI_T), DX1 - DX0, ey(LO_T) - ey(HI_T));
+    mx.setLineDash([4, 4]); seg(mx, DX0, ey(HI_T), DX1, ey(HI_T), "#e8a29e", 1); seg(mx, DX0, ey(LO_T), DX1, ey(LO_T), "#e8a29e", 1); mx.setLineDash([]);
+    seg(mx, DX0, bot, DX1, bot, "#c6ccd3", 1);
+    mx.font = `600 12px ${FONT}`; mx.fillStyle = "#b91c1c"; mx.textAlign = "right"; mx.textBaseline = "middle";
+    mx.fillText("can't tell", DX1 - 6, (ey(HI_T) + ey(LO_T)) / 2);
+    mx.fillStyle = COL.muted; mx.font = `13px ${FONT}`; mx.fillText("yes", DX0 - 8, ey(1)); mx.fillText("no", DX0 - 8, bot);
+    const K = 1000, sy = bot + 10, sh = 12, D = dDecisions();
+    mx.strokeStyle = "#6d4bd1"; mx.lineWidth = 2.5; mx.lineJoin = "round"; mx.beginPath(); let st = false;
+    for (let k = 0; k <= K; k++) {
+      const back = DWIN * (1 - k / K) - half, xx = DX0 + (DX1 - DX0) * k / K;
+      const e = back >= 0 ? dAt(dEN, back) : null;
+      if (e === null) { st = false; continue; }
+      const yy = ey(e); st ? mx.lineTo(xx, yy) : mx.moveTo(xx, yy); st = true;
+    }
+    mx.stroke();
+    { // decision strip: green = 1, red = can't tell, blank = 0
+      const xOf = m => DX1 - (dn - 1 - m) * DDT / DWIN * (DX1 - DX0);
+      let i0 = 0;
+      for (let i = 1; i <= D.arr.length; i++) {
+        if (i === D.arr.length || D.arr[i] !== D.arr[i0]) {
+          const sv = D.arr[i0];
+          if (sv) {
+            const xa = Math.max(DX0, xOf(D.m0 + i0)), xb = Math.min(DX1, xOf(D.m0 + i));
+            if (xb > xa) { mx.fillStyle = sv === 1 ? "#2d9b55" : "#e8281e"; mx.fillRect(xa, sy, xb - xa, sh); }
+          }
+          i0 = i;
+        }
+      }
+    }
+    mx.font = `600 12px ${FONT}`; mx.textAlign = "right"; mx.fillStyle = COL.muted; mx.fillText("decoded", DX0 - 8, sy + sh / 2);
+    tLabel(mx, DX1 + 14, r4.y + r4.h - 4);
+
+    // Decoded message box
+    const letters = dDecode(D), bx = 34, by = 386, bw = 210, bh = 104;
+    rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
+    const shown = letters.slice(-6);
+    mx.font = `800 34px ${FONT}`; mx.textBaseline = "middle";
+    if (!shown.length) { mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 62); }
+    else {
+      const gap = 34, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
+      shown.forEach((c, i) => { mx.fillStyle = c === "?" ? "#e8281e" : COL.ink; mx.fillText(c, x0 + i * gap, by + 62); });
+    }
+  }
+  main.addEventListener("pointerdown", e => {
+    if (view !== "sending-data") return;
+    const b = main.getBoundingClientRect(), x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
+    if (x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h) {
+      dManual = true; try { main.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault();
+    }
+  });
+  const dRelease = () => { dManual = false; };
+  main.addEventListener("pointerup", dRelease); main.addEventListener("pointercancel", dRelease); main.addEventListener("lostpointercapture", dRelease);
+  main.addEventListener("pointermove", e => {
+    if (view !== "sending-data") { main.style.cursor = "default"; return; }
+    const b = main.getBoundingClientRect(), x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
+    main.style.cursor = x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h ? "pointer" : "default";
+  });
+  window.addEventListener("keydown", e => {
+    if (view !== "sending-data" || e.code !== "Space") return;
+    e.preventDefault();
+    if (document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur();
+    if (!e.repeat) dManual = true;
+  });
+  window.addEventListener("keyup", e => { if (e.code === "Space") dManual = false; });
+  window.addEventListener("blur", dRelease);
+
   const WINDOW = 3;
   function panel(x, y, w, h, title, tag, tagCol, col, fn, scale, win = WINDOW, overlays = []) {
     const side = x === 0 ? 0 : 1, shut = collapsed[side];
@@ -631,6 +833,16 @@ import "./style.css";
   const hillStatus = document.getElementById("hillStatus"), hillDot = document.getElementById("hillDot");
   let shownF = 0;
   function updateText() {
+    if (view === "sending-data") {
+      const key = "d" + dFreq;
+      if (shownF !== key) {
+        shownF = key;
+        const cyc = (DFREQ[dFreq] * DU).toFixed(1);
+        statusText.textContent = `One dot lasts ${cyc} cycle${cyc === "1.0" ? "" : "s"} of the wave`;
+        dot.classList.toggle("on", dFreq === "high");
+      }
+      return;
+    }
     if (view === "encoding") {
       const key = "e" + enc;
       if (shownF !== key) {
@@ -674,25 +886,36 @@ import "./style.css";
       eacc += real * speed;
       while (eacc >= EDT) { eStep(); eacc -= EDT; }
       drawEncView();
+    } else if (view === "sending-data") {
+      dacc += real * speed;
+      while (dacc >= DDT) { dStep(); dacc -= DDT; }
+      drawDataView();
     } else if (view === "field-map") drawFieldView(); else drawWaveView();
-    drawPlots(); updateText();
+    if (view !== "sending-data") drawPlots();
+    updateText();
     requestAnimationFrame(loop);
   }
 
   const viewBtns = document.querySelectorAll("[data-view]");
   function setView(v) {
-    view = v === "inside-the-wave" || v === "over-the-hill" || v === "encoding" ? v : "field-map";
+    view = ["inside-the-wave", "over-the-hill", "encoding", "sending-data"].includes(v) ? v : "field-map";
     viewBtns.forEach(b => b.classList.toggle("on", b.dataset.view === view));
-    const hill = view === "over-the-hill", encv = view === "encoding";
-    document.getElementById("sigBar").hidden = hill || encv;
+    const hill = view === "over-the-hill", encv = view === "encoding", data = view === "sending-data";
+    document.getElementById("sigBar").hidden = hill || encv || data;
+    document.getElementById("dataBar").hidden = !data;
+    document.getElementById("lessonData").hidden = !data;
+    document.getElementById("dykData").hidden = !data;
+    document.getElementById("onBtn").hidden = data;
+    plots.hidden = data;
+    if (!data) dManual = false;
     document.getElementById("hillBar").hidden = !hill;
     document.getElementById("encBar").hidden = !encv;
-    document.getElementById("lessonMain").hidden = hill || encv;
+    document.getElementById("lessonMain").hidden = hill || encv || data;
     document.getElementById("lessonHill").hidden = !hill;
     document.getElementById("lessonEnc").hidden = !encv;
     document.getElementById("hillBtn").hidden = !hill;
     document.getElementById("statusBox").hidden = hill;
-    document.getElementById("footMain").hidden = hill || encv;
+    document.getElementById("footMain").hidden = hill || encv || data;
     document.getElementById("dykEnc").hidden = !encv;
     shownF = 0;
   }
@@ -729,5 +952,13 @@ import "./style.css";
 
   for (let i = 0; i < Math.round(8 / DT); i++) step();
   for (let i = 0; i < Math.round(9 / EDT); i++) eStep();
+  dPrime();
+  document.querySelectorAll("[data-dfreq]").forEach(b => b.addEventListener("click", () => {
+    if (dFreq === b.dataset.dfreq) return;
+    dFreq = b.dataset.dfreq;
+    document.querySelectorAll("[data-dfreq]").forEach(x => x.classList.toggle("on", x === b));
+    dReset(); dSos = 0.3;
+  }));
+  document.getElementById("sosBtn").addEventListener("click", () => { dSos = dt + 0.05; });
   requestAnimationFrame(loop);
 })();

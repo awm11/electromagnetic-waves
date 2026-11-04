@@ -17,12 +17,13 @@
   </header>
 
   <section class="card">
-    <div class="viewBar" role="group" aria-label="View">
-      <span class="barLabel">View</span>
+    <div class="viewBar" role="group" aria-label="Mode">
+      <span class="barLabel">Mode</span>
       <button class="seg on" id="vFieldBtn" data-view="field-map">Field map</button>
       <button class="seg" id="vWaveBtn" data-view="inside-the-wave">Inside the wave</button>
       <button class="seg" id="vHillBtn" data-view="over-the-hill">Over the hill</button>
       <button class="seg" id="vEncBtn" data-view="encoding">Encoding</button>
+      <button class="seg" id="vDataBtn" data-view="sending-data">Sending data</button>
     </div>
 
     <div class="stage">
@@ -36,6 +37,13 @@
           <span class="barLabel">Signal</span>
           <button class="seg on" id="sigSteady" data-mode="steady">Steady frequency</button>
           <button class="seg" id="sigChanging" data-mode="changing">Changing</button>
+        </div>
+        <div class="btnRow" id="dataBar" role="group" aria-label="Carrier frequency" hidden>
+          <span class="barLabel">Carrier frequency</span>
+          <button class="seg" data-dfreq="low">Low</button>
+          <button class="seg" data-dfreq="medium">Medium</button>
+          <button class="seg on" data-dfreq="high">High</button>
+          <button class="seg sendBtn" id="sosBtn">Send SOS</button>
         </div>
         <div class="btnRow" id="encBar" role="group" aria-label="Encoding" hidden>
           <span class="barLabel">Encoding</span>
@@ -89,6 +97,21 @@
       <p>The radio wave is absorbed by the receiving aerial and induces a small alternating current that carries the same variations. The decoder (<b>demodulator</b>) removes the carrier wave and recovers the original signal, which a loudspeaker turns back into sound. Radio waves travel at the speed of light, so the delay is far too short to hear.</p>
     </div>
   </section>
+  <section class="lesson" id="lessonData" hidden>
+    <div class="lessonBox">
+      <h2>1. A digital signal</h2>
+      <p>Information can be sent as a <b>digital signal</b>: a pattern of 1s and 0s. Here the carrier wave is switched on for a 1 and off for a 0. Morse code works the same way, using short pulses (dots) and long pulses (dashes). SOS is three dots, three dashes, three dots.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>2. Noise</h2>
+      <p>Every receiver also picks up random <b>noise</b>. To tell whether the wave is there, the decoder has to look at several complete cycles of the wave. If a pulse lasts less than a few cycles, the decoder cannot tell a 1 from a 0, and short pulses blur together.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>3. Higher frequency, more data</h2>
+      <p>A higher-frequency wave fits more cycles into each pulse, so the pulses can be shorter and still be decoded. Shorter pulses mean more 1s and 0s every second: a higher <b>data rate</b>. This is why higher-frequency waves can carry more information.</p>
+    </div>
+  </section>
+  <div class="didYouKnow" id="dykData" hidden><b>Did you know?</b> Wi-Fi uses microwaves with a frequency of about 2.4 or 5 billion hertz (GHz), so each pulse can be extremely short. That is how it can send hundreds of millions of 1s and 0s every second.</div>
   <div class="didYouKnow" id="dykEnc" hidden><b>Did you know?</b> In real life broadcasting the carrier wave has a frequency 100s or 1000s of times greater than the signal.</div>
 
   <section class="lesson" id="lessonHill" hidden>
