@@ -64,9 +64,21 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spac
 .lessonBox p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
 .hi { color: #19743b; font-weight: 800; }
 .lo { color: #9b5d13; font-weight: 800; }
+/* awm Physics branding: kept deliberately quiet so it never competes with the simulation */
+.awm-logo-link { display: inline-block; line-height: 0; border-radius: 12px; opacity: .85; transition: opacity .15s ease, transform .2s ease; }
+.awm-logo-link:hover, .awm-logo-link:focus-visible { opacity: 1; transform: rotate(8deg); }
+.awm-logo-link img { width: 56px; height: 56px; display: block; }
+.shell.has-brand { position: relative; }
+.shell.has-brand > .heading { padding-right: 76px; }
+.awm-logo-link.page-logo { position: absolute; top: 0; right: 0; }
+.awm-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; padding: 18px 16px 0; color: rgba(32,32,32,.5); font-size: 12px; line-height: 1.4; }
+.awm-footer a { color: rgba(32,32,32,.7); text-decoration: none; }
+.awm-footer a:hover, .awm-footer a:focus-visible { color: var(--ink); text-decoration: underline; }
 @media (max-width: 760px) {
   body { padding-block: 10px; }
   .controls { flex-direction: column; align-items: flex-start; }
   .lesson { grid-template-columns: 1fr; }
+  .awm-logo-link img { width: 44px; height: 44px; }
+  .shell.has-brand > .heading { padding-right: 60px; }
 }
 @media (prefers-reduced-motion: reduce) { .toggle, .knob { transition: none; } }
