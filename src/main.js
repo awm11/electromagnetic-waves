@@ -554,14 +554,14 @@ import "./style.css";
   }
 
   // ---- Sending data: on-off keying with a Morse key, fixed noise, and a real decoder ----
-  const DDT = 1 / 240, DBUF = 2400, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
+  const DDT = 1 / 240, DBUF = 6000, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
   const DFREQ = { low: 2, medium: 7.5, high: 18 };
   const MORSE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z" };
   // SOS in Morse units: dot = 1, dash = 3, gap inside a letter = 1, gap between letters = 3.
   const SOS_ON = [[0, 1], [2, 3], [4, 5], [8, 11], [12, 15], [16, 19], [22, 23], [24, 25], [26, 27]];
   const sosOn = t => SOS_ON.some(([a, b]) => t >= a * DU && t < b * DU);
   const dKey = new Float32Array(DBUF), dTX = new Float32Array(DBUF), dRX = new Float32Array(DBUF), dEN = new Float32Array(DBUF), dPI = new Float32Array(DBUF), dPQ = new Float32Array(DBUF);
-  let dLetters = [], dFrozen = false, dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
+  let dLetters = [], dFrozen = false, dMsgManual = false, dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
   const dWinN = () => Math.round(2 / DFREQ[dFreq] / DDT);
   let gSpare = null;
   const gauss = () => {
@@ -573,7 +573,7 @@ import "./style.css";
     dt += DDT;
     const fq = DFREQ[dFreq];
     const key = dManual || (dSos !== null && sosOn(dt - dSos)) ? 1 : 0;
-    if (key) { if (dt - dLastOn > 1.2) dMsgIdx = dn; dLastOn = dt; }
+    if (key) { if (dt - dLastOn > (dManual ? 4 : 1.2)) { dMsgIdx = dn; dMsgManual = dManual; } dLastOn = dt; }
     dph += TWO_PI * fq * DDT;
     const tx = key * Math.sin(dph), rx = tx + DNOISE * gauss(), k = dn % DBUF;
     dKey[k] = key; dTX[k] = tx; dRX[k] = rx;
@@ -615,6 +615,19 @@ import "./style.css";
     if (bandStart >= 0 && len - bandStart >= minQ) arr.fill(2, bandStart, len);
     return { m0, arr, half };
   }
+  // Split a list of durations into a short group and a long group (two-group clustering on a log scale).
+  // Returns the dividing time, or null if they don't form two clearly different groups.
+  function split2(xs) {
+    if (xs.length < 2) return null;
+    const L = xs.map(Math.log).sort((a, b) => a - b), mean = a => a.reduce((p, q) => p + q, 0) / a.length;
+    let best = null, bestCost = Infinity;
+    for (let i = 1; i < L.length; i++) {
+      const A = L.slice(0, i), B = L.slice(i), ma = mean(A), mb = mean(B);
+      const cost = A.reduce((p, x) => p + (x - ma) ** 2, 0) + B.reduce((p, x) => p + (x - mb) ** 2, 0);
+      if (cost < bestCost) { bestCost = cost; best = { ma, mb }; }
+    }
+    return best.mb - best.ma < Math.log(1.8) ? null : Math.exp((best.ma + best.mb) / 2);
+  }
   // Read those decisions back as Morse letters.
   function dDecode(D) {
     const { m0, arr } = D, from = Math.max(0, dMsgIdx - m0);
@@ -623,14 +636,35 @@ import "./style.css";
       const s = arr[i], r = runs[runs.length - 1];
       if (r && r.s === s) r.n++; else runs.push({ s, n: 1 });
     }
+    // SOS is sent with exact timing. Hand taps are judged against each other instead: presses are sorted into a
+    // short group (dots) and a long group (dashes), and gaps into short (inside a letter) and long (between letters).
+    let dotMax = 0.4, gapMin = 0.45, longMax = 1.4;
+    if (dMsgManual) {
+      longMax = 3;
+      const ons = runs.filter(r => r.s === 1).map(r => r.n * DDT).filter(x => x <= longMax);
+      if (ons.length) {
+        const cut = split2(ons);
+        dotMax = cut !== null ? cut : Math.max(...ons) < 0.45 ? Infinity : 0;
+        const dots = ons.filter(x => x < dotMax), dashes = ons.filter(x => x >= dotMax);
+        const unit = dots.length ? dots.reduce((a, b) => a + b) / dots.length : dashes.reduce((a, b) => a + b) / dashes.length / 3;
+        const firstOn = runs.findIndex(r => r.s === 1);
+        let lastOn = -1; runs.forEach((r, i) => { if (r.s === 1) lastOn = i; });
+        const gaps = runs.slice(firstOn, lastOn + 1).filter(r => r.s === 0).map(r => r.n * DDT);
+        const gcut = split2(gaps);
+        gapMin = gcut !== null ? Math.max(gcut, 2 * unit) : 2.5 * unit;
+      }
+    }
     const letters = []; let cur = "", unsure = false;
-    const close = () => { if (cur || unsure) letters.push(unsure ? "?" : (MORSE[cur] || "?")); cur = ""; unsure = false; };
+    const close = () => { if (cur || unsure) letters.push({ c: unsure ? "?" : (MORSE[cur] || "?"), code: unsure ? "" : cur }); cur = ""; unsure = false; };
     runs.forEach((r, i) => {
       const sec = r.n * DDT;
-      if (r.s === 1) { if (sec > 1.4) unsure = true; else cur += sec < 0.4 ? "." : "-"; }
+      if (r.s === 1) { if (sec > longMax) unsure = true; else cur += sec < dotMax ? "." : "-"; }
       else if (r.s === 2) unsure = true;
-      else if (sec >= 0.45 && (i < runs.length - 1 || true)) close();
+      else if (sec >= gapMin && i < runs.length - 1) close();
     });
+    const last = runs[runs.length - 1];
+    if (last && last.s === 0 && last.n * DDT >= gapMin) close();
+    letters.pending = unsure ? "?" : cur;
     return letters;
   }
 
@@ -655,6 +689,8 @@ import "./style.css";
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "middle";
     mx.fillText("Press and hold to tap", x + w / 2, by + 44);
     mx.fillText("(or hold the space bar)", x + w / 2, by + 62);
+    mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.ink;
+    mx.fillText("S = • • •     O = — — —", x + w / 2, by + 86);
   }
   function dRowLabel(r, text, col) { mx.font = `600 14px ${FONT}`; mx.fillStyle = col; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(text, DX0, r.y + 10); }
   function dTrace(buf, mid, amp, col, lw, clampV) {
@@ -723,16 +759,23 @@ import "./style.css";
 
     // Decoded message box
     // Once a message has finished arriving, keep showing what was decoded, even after it scrolls out of memory.
-    if (dt - dLastOn < 2.2 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= 2.2; }
+    if (dt - dLastOn < 4.5 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= 4.5; }
     const letters = dLetters, bx = 34, by = 386, bw = 210, bh = 104;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
-    const shown = letters.slice(-6);
-    mx.font = `800 34px ${FONT}`; mx.textBaseline = "middle";
-    if (!shown.length) { mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 62); }
+    // Each letter, with the dots and dashes the decoder heard underneath; a letter still being tapped shows in grey.
+    const pend = letters.pending || "", shown = letters.slice(pend ? -4 : -5).map(l => ({ ...l, p: false }));
+    if (pend) shown.push({ c: pend === "?" ? "?" : "…", code: pend === "?" ? "" : pend, p: true });
+    const sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join("");
+    mx.textBaseline = "middle"; mx.textAlign = "center";
+    if (!shown.length) { mx.font = `800 34px ${FONT}`; mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 56); }
     else {
-      const gap = 34, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
-      shown.forEach((c, i) => { mx.fillStyle = c === "?" ? "#e8281e" : COL.ink; mx.fillText(c, x0 + i * gap, by + 62); });
+      const gap = 40, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
+      shown.forEach((l, i) => {
+        const xx = x0 + i * gap;
+        mx.font = `800 30px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : l.c === "?" ? "#e8281e" : COL.ink; mx.fillText(l.c, xx, by + 52);
+        mx.font = `800 12px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : COL.muted; mx.fillText(sym(l.code), xx, by + 82);
+      });
     }
   }
   main.addEventListener("pointerdown", e => {
