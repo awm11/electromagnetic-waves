@@ -1,0 +1,68 @@
+/* Layout: matches the loudspeaker app. Header, one white card (view tabs, stage, signal bar, controls), then numbered explanation boxes. */
+:root {
+  --page: #f3f5f7;
+  --card: #ffffff;
+  --panel: #fafbfc;
+  --ink: #202020;
+  --muted: #59636f;
+  --line: #d9dee4;
+  --line-strong: #c6ccd3;
+  --blue: #2166d1;
+  --blue-light: #eaf3ff;
+  --green: #2d9b55;
+  --green-light: #dff3e6;
+  --current: #e8281e;
+  --bfield: #c2255c;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+html, body { background: var(--page); color: var(--ink); }
+body {
+  font-family: var(--sans);
+  padding-block: 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.shell { max-width: 1160px; margin: 0 auto; }
+.heading { margin-bottom: 18px; }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #3867a8; margin-bottom: 4px; }
+h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spacing: -.04em; text-wrap: balance; }
+.intro { max-width: 780px; margin: 8px 0 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 28px rgba(31,41,55,.07); overflow: hidden; }
+.viewBar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 18px 0; }
+.stage { padding: 12px; display: grid; gap: 10px; }
+.stage canvas { display: block; width: 100%; height: auto; border-radius: 12px; touch-action: none; }
+#plots { border-radius: 0; }
+.signalBar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 18px; border-top: 1px solid #e2e6ea; }
+.barLabel { margin-right: 6px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.seg { border: 1px solid var(--line-strong); background: #fff; color: var(--ink); border-radius: 99px; padding: 7px 16px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.seg.on { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+.seg:focus-visible, .switchBtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px 22px; padding: 14px 18px; border-top: 1px solid #e2e6ea; background: var(--panel); }
+.btnRow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.subStatus { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 14px; }
+.didYouKnow { margin-top: 14px; background: var(--blue-light); border: 1px solid #c4dafa; border-radius: 14px; padding: 14px 18px; font-size: 14px; line-height: 1.5; color: #1d3f73; }
+.didYouKnow b { color: var(--blue); }
+[hidden] { display: none !important; }
+.toggles { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; }
+.switchBtn { display: flex; align-items: center; gap: 11px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; padding: 4px 0; }
+.toggle { width: 54px; height: 30px; border-radius: 99px; padding: 3px; background: var(--line-strong); transition: .25s ease; box-sizing: border-box; }
+.toggle.on { background: var(--blue); }
+.toggle.green.on { background: var(--green); }
+.knob { display: block; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: .25s ease; }
+.toggle.on .knob { transform: translateX(24px); }
+.status { justify-self: end; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #a7afb8; flex: 0 0 auto; }
+.dot.on { background: var(--green); box-shadow: 0 0 0 4px var(--green-light); }
+.lesson { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.lessonBox { background: #fff; border: 1px solid #dfe4e8; border-radius: 14px; padding: 16px 18px; }
+.lessonBox h2 { margin: 0 0 7px; font-size: 15px; }
+.lessonBox p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
+.hi { color: #19743b; font-weight: 800; }
+.lo { color: #9b5d13; font-weight: 800; }
+@media (max-width: 760px) {
+  body { padding-block: 10px; }
+  .controls { flex-direction: column; align-items: flex-start; }
+  .lesson { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .toggle, .knob { transition: none; } }
