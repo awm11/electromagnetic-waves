@@ -555,7 +555,7 @@ import "./style.css";
     mx.stroke();
     drawMast(hTI[(hn - 1 + HBUF) % HBUF] || 0, G - HMAST, hflow, HMX, 6, 84);
     drawHouse(Rh.x, hTop(Rh.x), hrflow);
-    pill(mx, WAVES[wave].name + " · not to scale", W - 24, 30, "right");
+    pill(mx, WAVES[wave].name + " · not to scale · slowed down", W - 24, 30, "right");
     fieldKey(52);
   }
 
@@ -854,6 +854,7 @@ import "./style.css";
     // Morse reminder
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.fillText("SOS in Morse code", bx + bw / 2, by + bh + 34);
     mx.font = `800 16px ${FONT}`; mx.fillStyle = COL.ink; mx.fillText("• • •    – – –    • • •", bx + bw / 2, by + bh + 58);
+    pill(mx, "Slowed down and simplified", bx + bw / 2, by + bh + 96, "center", COL.muted);
   }
 
   const WINDOW = 3;
@@ -1002,9 +1003,18 @@ import "./style.css";
   }
 
   const viewBtns = document.querySelectorAll("[data-view]");
+  // The paragraph under the title changes with the mode.
+  const INTROS = {
+    "field-map": "An alternating current in the transmitting mast makes a wave in the electric and magnetic fields. The wave travels outwards, and when it reaches another aerial it makes an alternating current there too.",
+    "inside-the-wave": "Zoom in on the wave itself: electric and magnetic fields oscillating at right angles to each other, travelling away from the transmitter at the speed of light. When the wave reaches a wire, its electric field pushes the electrons inside.",
+    "over-the-hill": "Radio waves spread out when they pass the edge of an obstacle. Compare how a long wave and a shorter wave get over a hill to reach a house on the other side.",
+    "encoding": "A steady radio wave carries no information. To send sound, the transmitter changes the carrier wave to match the sound signal, and the receiver decodes it back again.",
+    "sending-data": "Digital data is sent as pulses: the carrier wave is switched on for a 1 and off for a 0. The frequency of the carrier limits how short the pulses can be, and so how quickly data can be sent."
+  };
   function setView(v) {
     view = ["inside-the-wave", "over-the-hill", "encoding", "sending-data"].includes(v) ? v : "field-map";
     viewBtns.forEach(b => b.classList.toggle("on", b.dataset.view === view));
+    document.getElementById("intro").textContent = INTROS[view];
     const hill = view === "over-the-hill", encv = view === "encoding", data = view === "sending-data";
     document.getElementById("sigBar").hidden = hill || encv || data;
     document.getElementById("dataBar").hidden = !data;
