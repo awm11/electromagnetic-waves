@@ -129,16 +129,17 @@ import "./style.css";
     smoothDraw(fVal, GW, fLut, fX, fY);
   }
 
-  // Key for the field colours, drawn on the dark ground strip at the bottom right.
-  function fieldKey() {
-    const bw = 150, bh = 10, x1 = W - 76, x0 = x1 - bw, y = H - 26;
+  // Key for the field colours: a small white panel in the top-right corner, with its top edge at y.
+  function fieldKey(y) {
+    const bw = 130, bh = 9, pw = 250, ph = 44, px1 = W - 24, px0 = px1 - pw, x0 = px0 + 52, x1 = x0 + bw, cy = y + 29;
+    rr(mx, px0, y, pw, ph, 10); mx.fillStyle = "rgba(255,255,255,0.94)"; mx.fill(); mx.strokeStyle = "#c6ccd3"; mx.lineWidth = 1; mx.stroke();
     const g = mx.createLinearGradient(x0, 0, x1, 0);
     VIR.forEach((c, i) => g.addColorStop(i / (VIR.length - 1), `rgb(${c.join(",")})`));
-    rr(mx, x0, y - bh / 2, bw, bh, 3); mx.fillStyle = g; mx.fill(); mx.strokeStyle = "rgba(255,255,255,0.45)"; mx.lineWidth = 1; mx.stroke();
-    mx.font = `600 12px ${FONT}`; mx.fillStyle = "#e8ecf0"; mx.textBaseline = "middle";
-    mx.textAlign = "right"; mx.fillText("zero", x0 - 8, y);
-    mx.textAlign = "left"; mx.fillText("strong", x1 + 8, y);
-    mx.textAlign = "center"; mx.fillText("Field strength", (x0 + x1) / 2, y - 17);
+    rr(mx, x0, cy - bh / 2, bw, bh, 3); mx.fillStyle = g; mx.fill();
+    mx.font = `600 12px ${FONT}`; mx.fillStyle = COL.ink; mx.textBaseline = "middle";
+    mx.textAlign = "right"; mx.fillText("zero", x0 - 8, cy);
+    mx.textAlign = "left"; mx.fillText("strong", x1 + 8, cy);
+    mx.textAlign = "center"; mx.fillText("Field strength", (x0 + x1) / 2, y + 13);
   }
   function rr(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
   function pill(c, text, x, y, align = "center", color = COL.ink) {
@@ -187,7 +188,7 @@ import "./style.css";
     const I = HI[(n - 1) % BUF] || 0;
     drawMast(I, T.top, flowOff);
     drawHouse(R.x, G, rxFlow);
-    fieldKey();
+    fieldKey(18);
   }
 
   function drawMast(I, tp, offs, mxp = T.x, bx = 34, bw = 112) {
@@ -554,8 +555,8 @@ import "./style.css";
     mx.stroke();
     drawMast(hTI[(hn - 1 + HBUF) % HBUF] || 0, G - HMAST, hflow, HMX, 6, 84);
     drawHouse(Rh.x, hTop(Rh.x), hrflow);
-    fieldKey();
     pill(mx, WAVES[wave].name + " · not to scale", W - 24, 30, "right");
+    fieldKey(52);
   }
 
   const EDT = 1 / 240, EBUF = 2400, EFC = 5, EV = 150, EDEV = 2;
