@@ -274,12 +274,18 @@ import "./style.css";
     rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8);
     mx.fillStyle = "#d4dfea"; mx.fill(); mx.strokeStyle = "#9fb0c2"; mx.lineWidth = 1.5; mx.stroke();
 
-    mx.save();
-    mx.strokeStyle = "#2166d1";
-    mx.lineWidth = 4.5; mx.lineCap = "round";
-    mx.setLineDash([9, 15]); mx.lineDashOffset = flowOff;
-    mx.beginPath(); mx.moveTo(rod.x, rod.bot - 12); mx.lineTo(rod.x, rod.top + 12); mx.stroke();
-    mx.restore();
+    { // Electrons in the transmitter, in two staggered columns. They move the opposite way to the current
+      // (flowOff falls while the current flows up), so they shuffle down when the current is upwards.
+      const sp = 14, shift = ((-flowOff % sp) + sp) % sp;
+      mx.save(); rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8); mx.clip();
+      mx.fillStyle = "#2f6fd6"; mx.strokeStyle = "#163a72"; mx.lineWidth = 0.8;
+      for (let y = rod.top - sp; y < rod.bot + sp; y += sp) {
+        [[rod.x - 3.6, y + shift], [rod.x + 3.6, y + shift + sp / 2]].forEach(([ex, ey]) => {
+          mx.beginPath(); mx.arc(ex, ey, 3.2, 0, TWO_PI); mx.fill(); mx.stroke();
+        });
+      }
+      mx.restore();
+    }
 
     RYS.forEach(RY => RINGS.forEach((r, q) => {
       const col = ringCol(q), fx = rod.x, fy = RY + r * PS * PD / (PD - r * PC);
