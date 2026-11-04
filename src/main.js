@@ -854,7 +854,6 @@ import "./style.css";
     // Morse reminder
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.fillText("SOS in Morse code", bx + bw / 2, by + bh + 34);
     mx.font = `800 16px ${FONT}`; mx.fillStyle = COL.ink; mx.fillText("• • •    – – –    • • •", bx + bw / 2, by + bh + 58);
-    pill(mx, "Slowed down and simplified", bx + bw / 2, by + bh + 96, "center", COL.muted);
   }
 
   const WINDOW = 3;
