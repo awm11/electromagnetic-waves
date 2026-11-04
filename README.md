@@ -8,7 +8,7 @@ Modes (each has its own link via the URL hash):
 - `#inside-the-wave` — the electric and magnetic fields of the travelling wave, at right angles
 - `#over-the-hill` — long wave vs shorter wave diffracting over a hill
 - `#encoding` — AM and FM modulation, with a working decoder
-- `#sending-data` — tap Morse code (or send SOS) at three carrier frequencies to see why higher frequencies carry more data
+- `#sending-data` — send SOS at three carrier frequencies and two speeds to see why higher frequencies carry more data
 
 ## Develop
 

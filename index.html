@@ -38,12 +38,19 @@
           <button class="seg on" id="sigSteady" data-mode="steady">Steady frequency</button>
           <button class="seg" id="sigChanging" data-mode="changing">Changing</button>
         </div>
-        <div class="btnRow" id="dataBar" role="group" aria-label="Carrier frequency" hidden>
-          <span class="barLabel">Carrier frequency</span>
-          <button class="seg" data-dfreq="low">Low</button>
-          <button class="seg" data-dfreq="medium">Medium</button>
-          <button class="seg on" data-dfreq="high">High</button>
-          <button class="seg sendBtn" id="sosBtn">Send SOS</button>
+        <div id="dataBar" hidden>
+          <div class="btnRow" role="group" aria-label="Carrier frequency">
+            <span class="barLabel">Carrier frequency</span>
+            <button class="seg" data-dfreq="low">Low</button>
+            <button class="seg" data-dfreq="medium">Medium</button>
+            <button class="seg on" data-dfreq="high">High</button>
+          </div>
+          <div class="btnRow" role="group" aria-label="Sending speed" style="margin-top:8px">
+            <span class="barLabel">Sending speed</span>
+            <button class="seg on" data-dspeed="normal">Normal</button>
+            <button class="seg" data-dspeed="slow">Slow</button>
+            <button class="seg sendBtn" id="sosBtn">Send SOS</button>
+          </div>
         </div>
         <div class="btnRow" id="encBar" role="group" aria-label="Encoding" hidden>
           <span class="barLabel">Encoding</span>
@@ -108,7 +115,7 @@
     </div>
     <div class="lessonBox">
       <h2>3. Higher frequency, more data</h2>
-      <p>A higher-frequency wave fits more cycles into each pulse, so the pulses can be shorter and still be decoded. Shorter pulses mean more 1s and 0s every second: a higher <b>data rate</b>. This is why higher-frequency waves can carry more information. Try it: at a lower frequency, your message only gets through if you tap more slowly.</p>
+      <p>A higher-frequency wave fits more cycles into each pulse, so the pulses can be shorter and still be decoded. Shorter pulses mean more 1s and 0s every second: a higher <b>data rate</b>. This is why higher-frequency waves can carry more information. Try it: at a lower frequency, the message only gets through if it is sent more slowly, at a lower data rate.</p>
     </div>
   </section>
   <div class="didYouKnow" id="dykData" hidden><b>Did you know?</b> Wi-Fi uses microwaves with a frequency of about 2.4 or 5 billion hertz (GHz), so each pulse can be extremely short. That is how it can send hundreds of millions of 1s and 0s every second.</div>

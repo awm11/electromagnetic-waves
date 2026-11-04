@@ -553,18 +553,18 @@ import "./style.css";
     pill(mx, "Receiving aerial", ER.x, ER.top - 24);
   }
 
-  // ---- Sending data: on-off keying with a Morse key, fixed noise, and a real decoder ----
-  const DDT = 1 / 240, DBUF = 14400, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
-  const DFREQ = { low: 2, medium: 7.5, high: 18 };
+  // ---- Sending data: SOS sent by switching the carrier on and off, with fixed noise and a real decoder ----
+  // The display is a sweep: each send draws left to right across the whole message, then holds still.
+  const DDT = 1 / 240, DBUF = 6000, DNOISE = 0.45;
+  const DFREQ = { low: 2, medium: 7.5, high: 18 }, DSPEED = { normal: 0.2, slow: 0.5 };
   const MORSE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z" };
   // SOS in Morse units: dot = 1, dash = 3, gap inside a letter = 1, gap between letters = 3.
-  const SOS_ON = [[0, 1], [2, 3], [4, 5], [8, 11], [12, 15], [16, 19], [22, 23], [24, 25], [26, 27]];
-  const sosOn = t => SOS_ON.some(([a, b]) => t >= a * DU && t < b * DU);
+  const SOS_ON = [[0, 1], [2, 3], [4, 5], [8, 11], [12, 15], [16, 19], [22, 23], [24, 25], [26, 27]], SOS_LEAD = 0.3;
   const dKey = new Float32Array(DBUF), dTX = new Float32Array(DBUF), dRX = new Float32Array(DBUF), dEN = new Float32Array(DBUF), dPI = new Float32Array(DBUF), dPQ = new Float32Array(DBUF);
-  let dLetters = [], dFrozen = false, dMsgManual = false, dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
+  let dFreq = "high", dSpeed = "normal", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dHas = false, dT = 1, dacc = 0, dLetters = [];
+  const dU = () => DSPEED[dSpeed];
+  const sosOn = t => SOS_ON.some(([a, b]) => t >= a * dU() && t < b * dU());
   const dWinN = () => Math.round(2 / DFREQ[dFreq] / DDT);
-  // How long a pause ends a hand-tapped message (longer at low frequency, where tapping has to be slow).
-  const dBreak = () => Math.max(4, 8 * dWinN() * DDT);
   let gSpare = null;
   const gauss = () => {
     if (gSpare !== null) { const g = gSpare; gSpare = null; return g; }
@@ -573,9 +573,7 @@ import "./style.css";
   };
   function dStep() {
     dt += DDT;
-    const fq = DFREQ[dFreq];
-    const key = dManual || (dSos !== null && sosOn(dt - dSos)) ? 1 : 0;
-    if (key) { if (dt - dLastOn > (dManual ? dBreak() : 1.2)) { dMsgIdx = dn; dMsgManual = dManual; } dLastOn = dt; }
+    const fq = DFREQ[dFreq], key = sosOn(dt - SOS_LEAD) ? 1 : 0;
     dph += TWO_PI * fq * DDT;
     const tx = key * Math.sin(dph), rx = tx + DNOISE * gauss(), k = dn % DBUF;
     dKey[k] = key; dTX[k] = tx; dRX[k] = rx;
@@ -588,113 +586,38 @@ import "./style.css";
   }
   function dReset() {
     [dKey, dTX, dRX, dEN, dPI, dPQ].forEach(b => b.fill(0));
-    dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLastOn = -10; dMsgIdx = 0; dSos = null; dManual = false; dLetters = []; dFrozen = false;
+    dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLetters = []; dacc = 0;
   }
-  // Start with a screen full of noise only: nothing is sent until the key is pressed or Send SOS is clicked.
-  function dPrime() {
-    dReset();
-    for (let i = 0; i < Math.round(7 / DDT); i++) dStep();
-  }
-  const dAt = (buf, back) => {
-    const idx = dn - 1 - back / DDT, i0 = Math.floor(idx), f = idx - i0;
-    if (i0 < 0 || dn - 1 - i0 >= DBUF - 1) return null;
-    const a = buf[i0 % DBUF], b = buf[(i0 + 1) % DBUF];
-    return a + (b - a) * f;
+  // Send SOS: clear the screen and start a new sweep long enough for the whole message.
+  function dSend() { dReset(); dHas = true; dT = SOS_LEAD + 27 * dU() + 0.8 + 0.5 * dWinN() * DDT; }
+  function dIdle() { dReset(); dHas = false; }
+  // Value of a buffer at time tau (seconds since the send began).
+  const dVal = (buf, tau) => {
+    const idx = tau / DDT - 1, i0 = Math.floor(idx), f = idx - i0;
+    if (i0 < 0 || i0 + 1 >= dn) return null;
+    return buf[i0] + (buf[i0 + 1] - buf[i0]) * f;
   };
   const LO_T = 0.3, HI_T = 0.7;
   // The decoder's decisions, lined up with the key. It switches to 1 above the upper line and back to 0 below the
   // lower line (so noise can't make it flicker), and marks "can't tell" wherever it lingers between the lines.
   function dDecisions() {
-    const half = dWinN() >> 1, last = dn - 1 - half, m0 = Math.max(0, dn - DBUF + half + 2), minQ = Math.round(1.5 * dWinN());
-    const len = Math.max(0, last - m0 + 1), arr = new Int8Array(len);
+    const half = dWinN() >> 1, len = Math.max(0, dn - half), minQ = Math.round(1.5 * dWinN()), arr = new Int8Array(len);
     let b = 0, bandStart = -1;
     for (let i = 0; i < len; i++) {
-      const e = dEN[(m0 + i + half) % DBUF];
+      const e = dEN[i + half];
       if (e > HI_T) b = 1; else if (e < LO_T) b = 0;
       arr[i] = b;
       if (e >= LO_T && e <= HI_T) { if (bandStart < 0) bandStart = i; }
       else { if (bandStart >= 0 && i - bandStart >= minQ) arr.fill(2, bandStart, i); bandStart = -1; }
     }
     if (bandStart >= 0 && len - bandStart >= minQ) arr.fill(2, bandStart, len);
-    return { m0, arr, half };
+    return arr;
   }
-  // Split a list of durations into a short group and a long group (two-group clustering on a log scale).
-  // Returns the dividing time, or null if they don't form two clearly different groups.
-  function split2(xs) {
-    if (xs.length < 2) return null;
-    const L = xs.map(Math.log).sort((a, b) => a - b), mean = a => a.reduce((p, q) => p + q, 0) / a.length;
-    let best = null, bestCost = Infinity;
-    for (let i = 1; i < L.length; i++) {
-      const A = L.slice(0, i), B = L.slice(i), ma = mean(A), mb = mean(B);
-      const cost = A.reduce((p, x) => p + (x - ma) ** 2, 0) + B.reduce((p, x) => p + (x - mb) ** 2, 0);
-      if (cost < bestCost) { bestCost = cost; best = { ma, mb }; }
-    }
-    return best.mb - best.ma < Math.log(1.8) ? null : Math.exp((best.ma + best.mb) / 2);
-  }
-  // Hand-tapped Morse. Presses are sorted into short (dots) and long (dashes) by comparing them with each other.
-  // Then, rather than one fixed "end of letter" gap, every way of splitting the dots and dashes into real Morse
-  // letters is tried, and the split that best fits the gaps wins: long gaps favour a new letter, short gaps don't.
-  const MORSE_PREFIX = new Set(); Object.keys(MORSE).forEach(c => { for (let i = 1; i <= c.length; i++) MORSE_PREFIX.add(c.slice(0, i)); });
-  function dDecodeHand(runs) {
-    const Wsec = dWinN() * DDT, longMax = Math.max(3, 6 * Wsec);
-    const marks = [], gaps = []; let mk = null, gap = 0;
-    runs.forEach(r => {
-      const sec = r.n * DDT;
-      if (r.s === 0) { if (mk) { marks.push(mk); mk = null; } gap += sec; }
-      else {
-        if (!mk) { if (marks.length) gaps.push(gap); gap = 0; mk = { on: 0, unsure: false }; }
-        if (r.s === 1) mk.on += sec; else mk.unsure = true;
-      }
-    });
-    const pressing = !!mk; if (mk) marks.push(mk);
-    const trailing = pressing ? 0 : gap;
-    const letters = []; letters.pending = "";
-    if (!marks.length) return letters;
-    marks.forEach(m => { if (m.on === 0 || m.on > longMax) m.unsure = true; });
-    const ons = marks.filter(m => !m.unsure).map(m => m.on);
-    let dotMax = Infinity;
-    if (ons.length) {
-      const cut = split2(ons);
-      dotMax = cut !== null ? cut : Math.max(...ons) < Math.max(0.45, 3 * Wsec) ? Infinity : 0;
-    }
-    const dots = ons.filter(x => x < dotMax), dashes = ons.filter(x => x >= dotMax);
-    const unit = dots.length ? dots.reduce((a, b) => a + b) / dots.length : dashes.length ? dashes.reduce((a, b) => a + b) / dashes.length / 3 : 0.2;
-    const gcut = split2(gaps);
-    const gRef = gcut !== null ? Math.max(gcut, 1.8 * unit) : 2.2 * unit;
-    const sc = g => g >= 4.5 * unit && g > gRef ? 100 : 3 * Math.log(g / gRef);
-    const sym = marks.map(m => m.unsure ? "?" : m.on < dotMax ? "." : "-");
-    const N = marks.length, ended = !pressing && trailing >= gRef;
-    const segScore = (i, j) => {
-      const code = sym.slice(i, j).join("");
-      if (code.includes("?")) return -1;
-      if (j === N && !ended) return MORSE_PREFIX.has(code) ? 0 : -8;
-      return MORSE[code] ? 0 : -8;
-    };
-    const best = new Array(N + 1).fill(-Infinity), from = new Array(N + 1).fill(0); best[0] = 0;
-    for (let j = 1; j <= N; j++) for (let i = Math.max(0, j - 6); i < j; i++) {
-      let v = best[i] + segScore(i, j) + (i > 0 ? sc(gaps[i - 1]) : 0);
-      for (let k = i; k < j - 1; k++) v -= sc(gaps[k]);
-      if (v > best[j]) { best[j] = v; from[j] = i; }
-    }
-    const segs = []; for (let j = N; j > 0; j = from[j]) segs.unshift([from[j], j]);
-    segs.forEach(([i, j], n) => {
-      const code = sym.slice(i, j).join("");
-      if (n === segs.length - 1 && !ended) letters.pending = code.includes("?") ? "?" : code;
-      else letters.push({ c: code.includes("?") ? "?" : (MORSE[code] || "?"), code: code.includes("?") ? "" : code });
-    });
-    return letters;
-  }
-  // Read those decisions back as Morse letters.
-  function dDecode(D) {
-    const { m0, arr } = D, from = Math.max(0, dMsgIdx - m0);
+  // Read the decisions back as Morse letters. SOS is sent with exact timing, so fixed thresholds are enough.
+  function dDecode(arr, done) {
     const runs = [];
-    for (let i = from; i < arr.length; i++) {
-      const s = arr[i], r = runs[runs.length - 1];
-      if (r && r.s === s) r.n++; else runs.push({ s, n: 1 });
-    }
-    if (dMsgManual) return dDecodeHand(runs);
-    // SOS is sent with exact timing, so fixed thresholds are enough.
-    const dotMax = 2 * DU, gapMin = 2.25 * DU, longMax = 7 * DU;
+    for (let i = 0; i < arr.length; i++) { const r = runs[runs.length - 1]; if (r && r.s === arr[i]) r.n++; else runs.push({ s: arr[i], n: 1 }); }
+    const u = dU(), dotMax = 2 * u, gapMin = 2.25 * u, longMax = 7 * u;
     const letters = []; let cur = "", unsure = false;
     const close = () => { if (cur || unsure) letters.push({ c: unsure ? "?" : (MORSE[cur] || "?"), code: unsure ? "" : cur }); cur = ""; unsure = false; };
     runs.forEach((r, i) => {
@@ -704,16 +627,14 @@ import "./style.css";
       else if (sec >= gapMin && i < runs.length - 1) close();
     });
     const last = runs[runs.length - 1];
-    if (last && last.s === 0 && last.n * DDT >= gapMin) close();
-    letters.pending = unsure ? "?" : cur;
+    if (last && last.s === 0 && (done || last.n * DDT >= gapMin)) close();
     return letters;
   }
 
   const DX0 = 300, DX1 = 1070, DROWS = [{ y: 18, h: 92 }, { y: 122, h: 104 }, { y: 238, h: 104 }, { y: 354, h: 150 }];
-  const KEYR = { x: 34, y: 170, w: 210, h: 120 }, CLEARB = { x: 34 + 210 - 50, y: 386 + 7, w: 44, h: 22 };
-  const onClear = (x, y) => x >= CLEARB.x - 6 && x <= CLEARB.x + CLEARB.w + 6 && y >= CLEARB.y - 6 && y <= CLEARB.y + CLEARB.h + 6;
-  // Forget the decoded message: decoding starts afresh from the next tap.
-  function dClear() { dMsgIdx = dn; dLetters = []; dFrozen = true; }
+  const dX = tau => DX0 + tau / dT * (DX1 - DX0);
+  const KEYR = { x: 34, y: 48, w: 210, h: 120 };
+  // The Morse key presses itself in time with the message being sent (it is a picture, not a control).
   function drawMorseKey(pressed) {
     const { x, y, w } = KEYR, by = y + 92;
     rr(mx, x, by, w, 24, 6); mx.fillStyle = "#8a5a3c"; mx.fill(); mx.strokeStyle = "#5e3c27"; mx.lineWidth = 1.5; mx.stroke();
@@ -730,17 +651,13 @@ import "./style.css";
     mx.restore();
     mx.beginPath(); mx.arc(px0, py0 + 2, 4, 0, TWO_PI); mx.fillStyle = "#7a6038"; mx.fill();
     pill(mx, "Morse key", x + w / 2, y - 6);
-    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "middle";
-    mx.fillText("Press and hold to tap", x + w / 2, by + 44);
-    mx.fillText("(or hold the space bar)", x + w / 2, by + 62);
-    mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.ink;
-    mx.fillText("S = • • •     O = — — —", x + w / 2, by + 86);
   }
   function dRowLabel(r, text, col) { mx.font = `600 14px ${FONT}`; mx.fillStyle = col; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(text, DX0, r.y + 10); }
   function dTrace(buf, mid, amp, col, lw, clampV) {
-    const K = 1400; mx.strokeStyle = col; mx.lineWidth = lw; mx.lineJoin = "round"; mx.beginPath(); let started = false;
+    if (!dHas) { seg(mx, DX0, mid, DX1, mid, col, lw); return; }
+    const K = 2400; mx.strokeStyle = col; mx.lineWidth = lw; mx.lineJoin = "round"; mx.beginPath(); let started = false;
     for (let k = 0; k <= K; k++) {
-      const v = dAt(buf, DWIN * (1 - k / K)); if (v === null) { started = false; continue; }
+      const v = dVal(buf, dT * k / K); if (v === null) { if (started) break; continue; }
       const vv = Math.max(-clampV, Math.min(clampV, v)), xx = DX0 + (DX1 - DX0) * k / K, yy = mid - vv * amp;
       started ? mx.lineTo(xx, yy) : mx.moveTo(xx, yy); started = true;
     }
@@ -749,21 +666,20 @@ import "./style.css";
   function drawDataView() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
     mx.strokeStyle = COL.line; mx.lineWidth = 1.5; rr(mx, 0.75, 0.75, W - 1.5, H - 1.5, 12); mx.stroke();
-    const keyNow = dKey[(dn - 1 + DBUF) % DBUF] > 0.5;
-    drawMorseKey(keyNow);
 
+    drawMorseKey(dHas && dn > 0 && dKey[dn - 1] > 0.5 && dt < dT);
     const [r1, r2, r3, r4] = DROWS;
     mx.setLineDash([4, 4]);
-    [[r1, r1.y + r1.h - 14], [r2, r2.y + 60], [r3, r3.y + 60]].forEach(([, yy]) => seg(mx, DX0, yy, DX1, yy, "#c6ccd3", 1));
+    [r1.y + r1.h - 14, r2.y + 60, r3.y + 60].forEach(yy => seg(mx, DX0, yy, DX1, yy, "#c6ccd3", 1));
     mx.setLineDash([]);
     dRowLabel(r1, "Key: 1 = on, 0 = off", COL.ink);
     { const base = r1.y + r1.h - 14, hgt = 56;
       mx.font = `13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right"; mx.fillText("1", DX0 - 8, base - hgt); mx.fillText("0", DX0 - 8, base);
       dTrace(dKey, base, hgt, COL.ink, 2.5, 1); }
     dRowLabel(r2, "Transmitted radio wave", COL.blue);
-    dTrace(dTX, r2.y + 60, 36, COL.blue, 1.6, 1);
+    dTrace(dTX, r2.y + 60, 36, COL.blue, 1.4, 1);
     dRowLabel(r3, "Received wave, with noise", COL.green);
-    dTrace(dRX, r3.y + 60, 22, COL.green, 1.3, 1.9);
+    dTrace(dRX, r3.y + 60, 22, COL.green, 1.1, 1.9);
 
     // Decoder: its estimate of how much wave is present, lined up with the key above.
     dRowLabel(r4, "Decoder: is the wave there?", "#6d4bd1");
@@ -775,86 +691,51 @@ import "./style.css";
     mx.font = `600 12px ${FONT}`; mx.fillStyle = "#b91c1c"; mx.textAlign = "right"; mx.textBaseline = "middle";
     mx.fillText("can't", DX0 - 8, bandMid - 7); mx.fillText("tell", DX0 - 8, bandMid + 7);
     mx.fillStyle = COL.muted; mx.font = `13px ${FONT}`; mx.fillText("1", DX0 - 8, ey(1)); mx.fillText("0", DX0 - 8, bot);
-    const K = 1000, sy = bot + 10, sh = 12, D = dDecisions();
-    mx.strokeStyle = "#6d4bd1"; mx.lineWidth = 2.5; mx.lineJoin = "round"; mx.beginPath(); let st = false;
-    for (let k = 0; k <= K; k++) {
-      const back = DWIN * (1 - k / K) - half, xx = DX0 + (DX1 - DX0) * k / K;
-      const e = back >= 0 ? dAt(dEN, back) : null;
-      if (e === null) { st = false; continue; }
-      const yy = ey(e); st ? mx.lineTo(xx, yy) : mx.moveTo(xx, yy); st = true;
-    }
-    mx.stroke();
-    { // decision strip: green = 1, red = can't tell, blank = 0
-      const xOf = m => DX1 - (dn - 1 - m) * DDT / DWIN * (DX1 - DX0);
-      let i0 = 0;
-      for (let i = 1; i <= D.arr.length; i++) {
-        if (i === D.arr.length || D.arr[i] !== D.arr[i0]) {
-          const sv = D.arr[i0];
-          if (sv) {
-            const xa = Math.max(DX0, xOf(D.m0 + i0)), xb = Math.min(DX1, xOf(D.m0 + i));
-            if (xb > xa) { mx.fillStyle = sv === 1 ? "#2d9b55" : "#e8281e"; mx.fillRect(xa, sy, xb - xa, sh); }
-          }
+    const sy = bot + 10, sh = 12;
+    mx.font = `600 12px ${FONT}`; mx.textAlign = "right"; mx.fillStyle = COL.muted; mx.fillText("decoded", DX0 - 8, sy + sh / 2);
+    tLabel(mx, DX1 + 14, r4.y + r4.h - 4);
+    const done = dHas && dt >= dT - 1e-6;
+    if (dHas) {
+      const K = 1600; mx.strokeStyle = "#6d4bd1"; mx.lineWidth = 2.5; mx.lineJoin = "round"; mx.beginPath(); let st = false;
+      for (let k = 0; k <= K; k++) {
+        const tau = dT * k / K, e = dVal(dEN, tau + half);
+        if (e === null) break;
+        const xx = DX0 + (DX1 - DX0) * k / K, yy = ey(e); st ? mx.lineTo(xx, yy) : mx.moveTo(xx, yy); st = true;
+      }
+      mx.stroke();
+      // decision strip: green = 1, red = can't tell, blank = 0
+      const arr = dDecisions(); let i0 = 0;
+      for (let i = 1; i <= arr.length; i++) {
+        if (i === arr.length || arr[i] !== arr[i0]) {
+          if (arr[i0]) { const xa = dX((i0 + 1) * DDT), xb = Math.min(DX1, dX((i + 1) * DDT)); mx.fillStyle = arr[i0] === 1 ? "#2d9b55" : "#e8281e"; mx.fillRect(xa, sy, xb - xa, sh); }
           i0 = i;
         }
       }
+      dLetters = dDecode(arr, done);
+      // sweep front
+      if (!done) { const fx = dX(dt); mx.setLineDash([3, 4]); seg(mx, fx, r1.y, fx, sy + sh, "#a7afb8", 1); mx.setLineDash([]); }
+    } else {
+      pill(mx, "Choose a frequency and speed, then press Send SOS", (DX0 + DX1) / 2, r3.y + 60, "center", COL.blue);
     }
-    mx.font = `600 12px ${FONT}`; mx.textAlign = "right"; mx.fillStyle = COL.muted; mx.fillText("decoded", DX0 - 8, sy + sh / 2);
-    tLabel(mx, DX1 + 14, r4.y + r4.h - 4);
 
-    // Decoded message box
-    // Once a message has finished arriving, keep showing what was decoded, even after it scrolls out of memory.
-    if (dt - dLastOn < dBreak() + 0.5 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= dBreak() + 0.5; }
-    const letters = dLetters, bx = 34, by = 386, bw = 210, bh = 104;
+    // Decoded message, with the dots and dashes the decoder heard under each letter.
+    const bx = 34, by = 214, bw = 210, bh = 112;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
-    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText("Decoded message", bx + 14, by + 18);
-    { // "clear" button forgets the message
-      rr(mx, CLEARB.x, CLEARB.y, CLEARB.w, CLEARB.h, 11); mx.fillStyle = "#ffffff"; mx.fill(); mx.strokeStyle = "#c6ccd3"; mx.lineWidth = 1; mx.stroke();
-      mx.font = `700 12px ${FONT}`; mx.fillStyle = COL.blue; mx.textAlign = "center"; mx.textBaseline = "middle";
-      mx.fillText("clear", CLEARB.x + CLEARB.w / 2, CLEARB.y + CLEARB.h / 2 + 1);
-    }
-    // Each letter, with the dots and dashes the decoder heard underneath; a letter still being tapped shows in grey.
-    const pend = letters.pending || "", limit = dMsgManual ? 3 : 8, shown = letters.slice(-(pend ? limit - 1 : limit)).map(l => ({ ...l, p: false }));
-    if (pend) shown.push({ c: pend === "?" ? "?" : "…", code: pend === "?" ? "" : pend, p: true });
-    const sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join("");
-    mx.textBaseline = "middle"; mx.textAlign = "center";
-    if (!shown.length) { mx.font = `800 34px ${FONT}`; mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 56); }
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "middle"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
+    const shown = dLetters.slice(-8), sym = code => code.split("").map(ch => ch === "." ? "•" : "–").join("");
+    if (!shown.length) { mx.font = `800 34px ${FONT}`; mx.fillStyle = "#c6ccd3"; mx.fillText("–", bx + bw / 2, by + 60); }
     else {
-      const gap = shown.length > 1 ? Math.min(40, (bw - 36) / (shown.length - 1)) : 40, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2;
+      const gap = shown.length > 1 ? Math.min(44, (bw - 36) / (shown.length - 1)) : 44, x0 = bx + bw / 2 - (shown.length - 1) * gap / 2, small = gap < 34;
       shown.forEach((l, i) => {
         const xx = x0 + i * gap;
-        mx.font = `800 ${gap < 34 ? 24 : 30}px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : l.c === "?" ? "#e8281e" : COL.ink; mx.fillText(l.c, xx, by + 52);
-        mx.font = `800 ${gap < 34 ? 10 : 12}px ${FONT}`; mx.fillStyle = l.p ? "#a7afb8" : COL.muted; mx.fillText(sym(l.code), xx, by + 82);
+        mx.font = `800 ${small ? 24 : 32}px ${FONT}`; mx.fillStyle = l.c === "?" ? "#e8281e" : COL.ink; mx.fillText(l.c, xx, by + 58);
+        mx.font = `800 ${small ? 10 : 12}px ${FONT}`; mx.fillStyle = COL.muted; mx.fillText(sym(l.code), xx, by + 90);
       });
     }
+    // Morse reminder
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.fillText("SOS in Morse code", bx + bw / 2, by + bh + 34);
+    mx.font = `800 16px ${FONT}`; mx.fillStyle = COL.ink; mx.fillText("•••  –––  •••", bx + bw / 2, by + bh + 58);
   }
-  main.addEventListener("pointerdown", e => {
-    if (view !== "sending-data") return;
-    const b = main.getBoundingClientRect(), x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
-    if (x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h) {
-      dManual = true; try { main.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault();
-    }
-  });
-  const dRelease = () => { dManual = false; };
-  const dPos = e => { const b = main.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * H / b.height]; };
-  const onKey = (x, y) => x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h;
-  main.addEventListener("click", e => { if (view === "sending-data" && onClear(...dPos(e))) dClear(); });
-  // Plain mouse events too, for browsers that don't send pointer events.
-  main.addEventListener("mousedown", e => { if (view === "sending-data" && onKey(...dPos(e))) dManual = true; });
-  window.addEventListener("mouseup", dRelease);
-  main.addEventListener("pointerup", dRelease); main.addEventListener("pointercancel", dRelease); main.addEventListener("lostpointercapture", dRelease);
-  main.addEventListener("pointermove", e => {
-    if (view !== "sending-data") { main.style.cursor = "default"; return; }
-    const b = main.getBoundingClientRect(), x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
-    main.style.cursor = onClear(x, y) || x >= KEYR.x - 10 && x <= KEYR.x + KEYR.w + 10 && y >= KEYR.y - 20 && y <= KEYR.y + KEYR.h ? "pointer" : "default";
-  });
-  window.addEventListener("keydown", e => {
-    if (view !== "sending-data" || e.code !== "Space") return;
-    e.preventDefault();
-    if (document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur();
-    if (!e.repeat) dManual = true;
-  });
-  window.addEventListener("keyup", e => { if (e.code === "Space") dManual = false; });
-  window.addEventListener("blur", dRelease);
 
   const WINDOW = 3;
   function panel(x, y, w, h, title, tag, tagCol, col, fn, scale, win = WINDOW, overlays = []) {
@@ -935,10 +816,10 @@ import "./style.css";
   let shownF = 0;
   function updateText() {
     if (view === "sending-data") {
-      const key = "d" + dFreq;
+      const key = "d" + dFreq + dSpeed;
       if (shownF !== key) {
         shownF = key;
-        const cyc = (DFREQ[dFreq] * DU).toFixed(1);
+        const cyc = (DFREQ[dFreq] * dU()).toFixed(1);
         statusText.textContent = `One dot lasts ${cyc} cycle${cyc === "1.0" ? "" : "s"} of the wave`;
         dot.classList.toggle("on", dFreq === "high");
       }
@@ -988,8 +869,8 @@ import "./style.css";
       while (eacc >= EDT) { eStep(); eacc -= EDT; }
       drawEncView();
     } else if (view === "sending-data") {
-      dacc += real * speed;
-      while (dacc >= DDT) { dStep(); dacc -= DDT; }
+      // Only run while a message is being swept across; afterwards the picture holds still.
+      if (dHas && dt < dT) { dacc += real * speed; while (dacc >= DDT && dt < dT) { dStep(); dacc -= DDT; } }
       drawDataView();
     } else if (view === "field-map") drawFieldView(); else drawWaveView();
     if (view !== "sending-data") drawPlots();
@@ -1008,7 +889,6 @@ import "./style.css";
     document.getElementById("dykData").hidden = !data;
     document.getElementById("onBtn").hidden = data;
     plots.hidden = data;
-    if (!data) dManual = false;
     document.getElementById("hillBar").hidden = !hill;
     document.getElementById("encBar").hidden = !encv;
     document.getElementById("lessonMain").hidden = hill || encv || data;
@@ -1053,14 +933,19 @@ import "./style.css";
 
   for (let i = 0; i < Math.round(8 / DT); i++) step();
   for (let i = 0; i < Math.round(9 / EDT); i++) eStep();
-  dPrime();
   document.querySelectorAll("[data-dfreq]").forEach(b => b.addEventListener("click", () => {
     if (dFreq === b.dataset.dfreq) return;
     dFreq = b.dataset.dfreq;
     document.querySelectorAll("[data-dfreq]").forEach(x => x.classList.toggle("on", x === b));
-    dPrime();
+    dIdle();
   }));
   // Each Send SOS starts a fresh decoded message.
-  document.getElementById("sosBtn").addEventListener("click", () => { dSos = dt + 0.05; dMsgIdx = dn; dMsgManual = false; dLetters = []; dFrozen = false; });
+  document.querySelectorAll("[data-dspeed]").forEach(b => b.addEventListener("click", () => {
+    if (dSpeed === b.dataset.dspeed) return;
+    dSpeed = b.dataset.dspeed;
+    document.querySelectorAll("[data-dspeed]").forEach(x => x.classList.toggle("on", x === b));
+    dIdle();
+  }));
+  document.getElementById("sosBtn").addEventListener("click", dSend);
   requestAnimationFrame(loop);
 })();
