@@ -297,14 +297,16 @@ import "./style.css";
     mx.stroke();
 
 
-    seg(mx, WX0 - 10, rod.mid, WX1 + 10, rod.mid, "#a7afb8", 1.5);
+    seg(mx, WX0 - 10, rod.mid, W - 2, rod.mid, "#a7afb8", 1.5);
 
     // The wave carries straight on past the wire. E lies in the page, behind the wire. B points out of the page
     // (drawn down-left, towards the viewer) or into it (up-right, away), so each part of B is drawn in front of
     // or behind the wire and the E wave depending on which way it points.
-    const N = 58, AL = 105, eT = [], bT = [], eV = [];
+    const N = 66, AL = 105, eT = [], bT = [], eV = [];
+    // The wave runs on to the edge of the frame; clip it to the inside of the rounded border.
+    const inFrame = fn => { mx.save(); rr(mx, 1.5, 1.5, W - 3, H - 3, 11); mx.clip(); fn(); mx.restore(); };
     for (let i = 0; i <= N; i++) {
-      const x = WX0 + (WX1 - WX0) * i / N, e = eAt(x);
+      const x = WX0 + (W + 20 - WX0) * i / N, e = eAt(x);
       eV.push(e); eT.push([x, rod.mid - e * AL]);
       bT.push([x + BDIR[0] * e * AL, rod.mid + BDIR[1] * e * AL]);
     }
@@ -314,10 +316,12 @@ import "./style.css";
       for (let i = 0; i < N; i++) if ((eV[i] + eV[i + 1] > 0) === front) { mx.beginPath(); mx.moveTo(bT[i][0], bT[i][1]); mx.lineTo(bT[i + 1][0], bT[i + 1][1]); mx.stroke(); }
       mx.lineCap = "butt";
     };
-    drawB(false);
-    for (let i = 0; i <= N; i++) arrow(mx, eT[i][0], rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
-    mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath();
-    eT.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
+    inFrame(() => {
+      drawB(false);
+      for (let i = 0; i <= N; i++) arrow(mx, eT[i][0], rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
+      mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath();
+      eT.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
+    });
 
     const pe = eAt(PROBE);
     if (Math.abs(pe) > 0.05) {
@@ -350,7 +354,7 @@ import "./style.css";
       mx.font = `600 12px ${FONT}`; mx.fillStyle = "#1d3f73"; mx.textAlign = "center"; mx.textBaseline = "middle";
       mx.fillText("force on the electron", cx, WIRE.bot + 18);
     }
-    drawB(true);
+    inFrame(() => drawB(true));
 
     pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
     pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
