@@ -693,7 +693,6 @@ import "./style.css";
     mx.fillStyle = COL.muted; mx.font = `13px ${FONT}`; mx.fillText("1", DX0 - 8, ey(1)); mx.fillText("0", DX0 - 8, bot);
     const sy = bot + 10, sh = 12;
     mx.font = `600 12px ${FONT}`; mx.textAlign = "right"; mx.fillStyle = COL.muted; mx.fillText("decoded", DX0 - 8, sy + sh / 2);
-    tLabel(mx, DX1 + 14, r4.y + r4.h - 4);
     const done = dHas && dt >= dT - 1e-6;
     if (dHas) {
       const K = 1600; mx.strokeStyle = "#6d4bd1"; mx.lineWidth = 2.5; mx.lineJoin = "round"; mx.beginPath(); let st = false;
