@@ -363,13 +363,7 @@ import "./style.css";
       // Over the wire, which is a cylinder: only the part of each B vector that sticks out beyond the wire's
       // front surface (its semicircular cross-section) can be seen.
       const k = Math.hypot(BDIR[0], BDIR[1]);
-      // How far out of the page the wire's front surface is, as seen along each screen column. Out-of-page is drawn
-      // slanting down-left, so the view is slightly from the left: the surface sits further out on the left side.
-      const sl = -BDIR[0] / k, S = Math.hypot(1, sl), ph = Math.atan(sl);
-      const surf = sx => {
-        const u = (sx - xc) / (r * S); if (Math.abs(u) >= 1) return 0;
-        const A = Math.acos(u); return Math.max(0, Math.sin(A - ph), Math.sin(-A - ph)) * r;
-      };
+      const surf = sx => { const d = sx - xc; return Math.abs(d) >= r ? 0 : Math.sqrt(r * r - d * d); };
       mx.save(); mx.beginPath(); mx.rect(xc - r, 0, 2 * r, H); mx.clip();
       for (let i = 0; i <= N; i++) {
         if (eV[i] <= 0) continue;
