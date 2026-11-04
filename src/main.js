@@ -912,7 +912,9 @@ import "./style.css";
       const d = Math.hypot(R.x - T.x, R.y - G) / V, a = ampAt(R.x, R.y);
       panel(w + gap, 3, w, h, "Current in receiving aerial", "", COL.muted, COL.green, b => -a * ret(HS, b + d), 3);
     } else {
-      panel(w + gap, 3, w, h, "Electric field at the marked point", "", COL.muted, COL.blue, b => -ret(HS, b + (PROBE - rod.x) / V), 1);
+      // With the wire shown, follow the field where the electron is; otherwise at the bold E and B arrows.
+      const gx = showWire ? WIRE.x : PROBE;
+      panel(w + gap, 3, w, h, showWire ? "Electric field at the electron" : "Electric field at the marked point", "", COL.muted, COL.blue, b => -ret(HS, b + (gx - rod.x) / V), 1);
     }
   }
 
