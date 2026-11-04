@@ -80,20 +80,53 @@ import "./style.css";
   const R = { x: 870, y: G - 140 };
   const RX_AMP = ampAt(R.x, R.y), RX_DEL = Math.hypot(R.x - T.x, R.y - G) / V;
 
+  // Smooth field renderer. The signed field is blended between grid points first and only then coloured, one screen
+  // pixel at a time. Colouring each grid cell and then enlarging the picture breaks the sharp zero lines into dots.
+  const smCv = document.createElement("canvas"); smCv.width = W; smCv.height = G;
+  const smCx = smCv.getContext("2d"), smImg = smCx.createImageData(W, G);
+  for (let p = 3; p < smImg.data.length; p += 4) smImg.data[p] = 255;
+  const LN = 4096;
+  function makeLut(aMax, lo, span) {
+    const t = new Uint8Array(LN * 3);
+    for (let i = 0; i < LN; i++) {
+      let u = (Math.log10(i / (LN - 1) * aMax + 0.003) + lo) / span;
+      u = u < 0 ? 0 : u > 1 ? 1 : u;
+      const li = (u * 255 | 0) * 3; t[i * 3] = LUT[li]; t[i * 3 + 1] = LUT[li + 1]; t[i * 3 + 2] = LUT[li + 2];
+    }
+    return { t, s: (LN - 1) / aMax };
+  }
+  function axisMap(npx, cell, cells) {
+    const i0 = new Int32Array(npx), f = new Float32Array(npx);
+    for (let x = 0; x < npx; x++) { let g = (x + 0.5) / cell - 0.5; g = g < 0 ? 0 : g > cells - 1.001 ? cells - 1.001 : g; i0[x] = g | 0; f[x] = g - (g | 0); }
+    return { i0, f };
+  }
+  function smoothDraw(vals, gw, lut, X, Y) {
+    const d = smImg.data, t = lut.t, s = lut.s;
+    let p = 0;
+    for (let y = 0; y < G; y++) {
+      const r0 = Y.i0[y] * gw, r1 = r0 + gw, fy = Y.f[y];
+      for (let x = 0; x < W; x++, p += 4) {
+        const i = X.i0[x], fx = X.f[x];
+        const a = vals[r0 + i] + (vals[r0 + i + 1] - vals[r0 + i]) * fx, b = vals[r1 + i] + (vals[r1 + i + 1] - vals[r1 + i]) * fx;
+        let v = a + (b - a) * fy; if (v < 0) v = -v;
+        let k = (v * s) | 0; if (k > LN - 1) k = LN - 1; k *= 3;
+        d[p] = t[k]; d[p + 1] = t[k + 1]; d[p + 2] = t[k + 2];
+      }
+    }
+    smCx.putImageData(smImg, 0, 0);
+    mx.drawImage(smCv, 0, 0, W, G);
+  }
+
+  const fVal = new Float32Array(GW * GH), fLut = makeLut(1, 2.5, 2.5), fX = axisMap(W, CELL, GW), fY = axisMap(G, CELL, GH);
   function drawFieldImage() {
-    const d = img.data, last = n - 1;
+    const last = n - 1;
     for (let k = 0; k < GW * GH; k++) {
       const idx = last - cDel[k] / DT;
       let v = 0;
       if (idx >= 0) { const i0 = idx | 0, fr = idx - i0, a = HS[i0 % BUF], b = HS[(i0 + 1) % BUF]; v = (a + (b - a) * fr) * cAmp[k]; }
-      let u = (Math.log10(Math.abs(v) + 0.003) + 2.5) / 2.5;
-      u = u < 0 ? 0 : u > 1 ? 1 : u;
-      const li = (u * 255 | 0) * 3, p = k * 4;
-      d[p] = LUT[li]; d[p + 1] = LUT[li + 1]; d[p + 2] = LUT[li + 2];
+      fVal[k] = v;
     }
-    ox.putImageData(img, 0, 0);
-    mx.imageSmoothingEnabled = true;
-    mx.drawImage(off, 0, 0, W, G);
+    smoothDraw(fVal, GW, fLut, fX, fY);
   }
 
   function rr(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
@@ -355,14 +388,11 @@ import "./style.css";
   }
   const HCELL = 4, HGW = W / HCELL, HGH = Math.ceil(G / HCELL);
   const hR = new Float32Array(HGW * HGH), hA = new Float32Array(HGW * HGH), hP = new Float32Array(HGW * HGH);
-  const himg = ox.createImageData(HGW, HGH), hoff = document.createElement("canvas"); hoff.width = HGW; hoff.height = HGH;
-  const hox = hoff.getContext("2d");
-  for (let k = 0; k < HGW * HGH; k++) himg.data[k * 4 + 3] = 255;
   let hRec = null;
   function hReset() {
     for (let j = 0; j < HGH; j++) for (let i = 0; i < HGW; i++) {
       const k = j * HGW + i, x = i * HCELL + HCELL / 2, y = j * HCELL + HCELL / 2;
-      if (y >= hTop(x)) { hR[k] = 0; hA[k] = 0; hP[k] = 0; continue; }
+      if (y >= hTop(x) + 2 * HCELL) { hR[k] = 0; hA[k] = 0; hP[k] = 0; continue; }
       const f = fieldAt(x, y); hR[k] = f.r; hA[k] = f.amp; hP[k] = f.ph;
     }
     hRec = fieldAt(Rh.x, hTop(Rh.x) - HOUSE_ROD);
@@ -370,6 +400,14 @@ import "./style.css";
     hReady = true;
   }
   const hAt = (buf, back) => { const idx = hn - 1 - Math.round(back / HDT); return idx < 0 || hn - 1 - idx >= HBUF ? buf[0] * 0 : buf[((idx % HBUF) + HBUF) % HBUF]; };
+  // Same lookup, but blended between neighbouring samples, so the graphs are smooth curves rather than steps.
+  const hAtL = (buf, back) => {
+    const idx = hn - 1 - back / HDT, i0 = Math.floor(idx), f = idx - i0;
+    if (i0 < 0 || hn - 1 - i0 >= HBUF - 1) return 0;
+    const a = buf[i0 % HBUF], b = buf[(i0 + 1) % HBUF];
+    return a + (b - a) * f;
+  };
+  const hVal = new Float32Array(HGW * HGH), hLut = makeLut(2.5, 1.2, 1.6), hX = axisMap(W, HCELL, HGW), hY = axisMap(G, HCELL, HGH);
   function hStep() {
     hphase += TWO_PI * (HV / WAVES[wave].lam) * HDT;
     hamp += ((on ? 1 : 0) - hamp) * Math.min(1, HDT * 5);
@@ -389,20 +427,8 @@ import "./style.css";
   }
 
   function drawHillView() {
-    const d = himg.data;
-    for (let k = 0; k < HGW * HGH; k++) {
-      let u = 0;
-      if (hA[k] > 0) {
-        const a = hAt(hENV, hR[k] / HV) * hA[k] * Math.abs(Math.sin(hphase + hP[k]));
-        u = (Math.log10(a + 0.003) + 1.2) / 1.6;
-        u = u < 0 ? 0 : u > 1 ? 1 : u;
-      }
-      const li = (u * 255 | 0) * 3, p = k * 4;
-      d[p] = LUT[li]; d[p + 1] = LUT[li + 1]; d[p + 2] = LUT[li + 2];
-    }
-    hox.putImageData(himg, 0, 0);
-    mx.imageSmoothingEnabled = true;
-    mx.drawImage(hoff, 0, 0, W, HGH * HCELL);
+    for (let k = 0; k < HGW * HGH; k++) hVal[k] = hA[k] > 0 ? hAtL(hENV, hR[k] / HV) * hA[k] * Math.sin(hphase + hP[k]) : 0;
+    smoothDraw(hVal, HGW, hLut, hX, hY);
     mx.fillStyle = "#2b3138"; mx.beginPath(); mx.moveTo(0, H);
     for (let x = 0; x <= W; x += 5) mx.lineTo(x, hTop(x));
     mx.lineTo(W, H); mx.closePath(); mx.fill();
@@ -585,10 +611,10 @@ import "./style.css";
     }
     if (view === "over-the-hill") {
       const lw = wave === "long";
-      panel(0, 3, w, h, "Current in transmitter", WAVES[wave].name, lw ? "#9b5d13" : "#19743b", COL.current, b => hAt(hTI, b), 1, WAVES[wave].win);
+      panel(0, 3, w, h, "Current in transmitter", WAVES[wave].name, lw ? "#9b5d13" : "#19743b", COL.current, b => hAtL(hTI, b), 1, WAVES[wave].win);
       const mag = hillOn && wave === "long" ? 3 : 1;
       const vweak = hSignal() < 0.12;
-      panel(w + gap, 3, w, h, "Current in receiving aerial", vweak ? "very weak signal" : "", "#b91c1c", COL.green, b => hAt(hTR, b), mag, WAVES[wave].win);
+      panel(w + gap, 3, w, h, "Current in receiving aerial", vweak ? "very weak signal" : "", "#b91c1c", COL.green, b => hAtL(hTR, b), mag, WAVES[wave].win);
       return;
     }
     const fTag = freq === F1 ? "100 kHz" : "200 kHz", fCol = freq === F1 ? "#9b5d13" : "#19743b";
