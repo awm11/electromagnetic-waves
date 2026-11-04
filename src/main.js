@@ -236,6 +236,7 @@ import "./style.css";
   // A thick wire standing in the wave's path, with one electron in it.
   const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
+  let showWire = true;
   const BDIR = [-0.82, 0.46], PROBE_E = "#0d47a8", PROBE_B = "#99124a";
 
   function drawWaveView() {
@@ -297,14 +298,16 @@ import "./style.css";
     mx.stroke();
 
 
-    seg(mx, WX0 - 10, rod.mid, W - 2, rod.mid, "#a7afb8", 1.5);
+    // With the wire shown, the wave runs on past it to the edge of the frame; without it, the wave ends at WX1.
+    const waveEnd = showWire ? W + 110 : WX1;
+    seg(mx, WX0 - 10, rod.mid, showWire ? W - 2 : WX1 + 10, rod.mid, "#a7afb8", 1.5);
 
     // The wave carries straight on past the wire. E lies in the page, behind the wire. B points out of the page
     // (drawn down-left, towards the viewer) or into it (up-right, away), so each part of B is drawn in front of
     // or behind the wire and the E wave depending on which way it points.
     // Curves are sampled finely, with one sample exactly at PROBE so the bold arrows sit on the curves.
     // The thin arrows are drawn at every third sample.
-    const AL = 105, STEP = (PROBE - WX0) / 63, N = Math.ceil((W + 110 - WX0) / STEP), eT = [], bT = [], eV = [], isArrow = i => i % 3 === 0;
+    const AL = 105, STEP = (PROBE - WX0) / 63, N = Math.floor((waveEnd - WX0) / STEP + 1e-9), eT = [], bT = [], eV = [], isArrow = i => i % 3 === 0;
     // The wave runs on to the edge of the frame; clip it to the inside of the rounded border.
     const inFrame = fn => { mx.save(); rr(mx, 1.5, 1.5, W - 3, H - 3, 11); mx.clip(); fn(); mx.restore(); };
     for (let i = 0; i <= N; i++) {
@@ -327,7 +330,7 @@ import "./style.css";
 
     pill(mx, "E and B always at right angles", PROBE, rod.mid + 150);
 
-    { // The electron is pushed the opposite way to E (it has negative charge), so it oscillates up and down in the wire.
+    if (showWire) { // The electron is pushed the opposite way to E (it has negative charge), so it oscillates up and down in the wire.
       const d = (WIRE.x - rod.x) / V, ew = eAt(WIRE.x), cx = WIRE.x;
       // A cylinder: shaded body with a curved bottom edge, and a flat elliptical cap on top showing the cut end.
       const hw = WIRE.w / 2, cy = 7;
@@ -352,7 +355,8 @@ import "./style.css";
       mx.font = `600 12px ${FONT}`; mx.fillStyle = "#1d3f73"; mx.textAlign = "center"; mx.textBaseline = "middle";
       mx.fillText("force on the electron", cx, WIRE.bot + 18);
     }
-    inFrame(() => {
+    if (!showWire) inFrame(() => drawB(true));
+    else inFrame(() => {
       // Away from the wire, out-of-page B is simply drawn on top.
       const xc = WIRE.x, r = WIRE.w / 2;
       mx.save(); mx.beginPath(); mx.rect(0, 0, W, H); mx.rect(xc - r, 0, 2 * r, H); mx.clip("evenodd");
@@ -973,6 +977,7 @@ import "./style.css";
     document.getElementById("lessonHill").hidden = !hill;
     document.getElementById("lessonEnc").hidden = !encv;
     document.getElementById("hillBtn").hidden = !hill;
+    document.getElementById("wireBtn").hidden = view !== "inside-the-wave";
     document.getElementById("statusBox").hidden = hill;
     document.getElementById("footMain").hidden = hill || encv || data;
     document.getElementById("dykEnc").hidden = !encv;
@@ -989,6 +994,8 @@ import "./style.css";
     document.querySelectorAll("[data-wave]").forEach(x => x.classList.toggle("on", x === b));
     hReady = false;
   }));
+  const wireBtn = document.getElementById("wireBtn"), wireTog = document.getElementById("wireTog");
+  wireBtn.addEventListener("click", () => { showWire = !showWire; wireTog.classList.toggle("on", showWire); wireBtn.setAttribute("aria-pressed", showWire); });
   const hillBtn = document.getElementById("hillBtn"), hillTog = document.getElementById("hillTog");
   hillBtn.addEventListener("click", () => {
     hillOn = !hillOn; hillTog.classList.toggle("on", hillOn); hillBtn.setAttribute("aria-pressed", hillOn);
