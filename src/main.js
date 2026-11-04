@@ -276,13 +276,13 @@ import "./style.css";
 
     { // Electrons in the transmitter, in a single column. They move the opposite way to the current
       // (flowOff falls while the current flows up), so they shuffle down when the current is upwards.
-      const sp = 14, shift = ((-flowOff % sp) + sp) % sp;
+      const sp = 28, shift = ((-flowOff % sp) + sp) % sp;
       mx.save(); rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8); mx.clip();
       for (let y = rod.top - sp; y < rod.bot + sp; y += sp) {
         const ey = y + shift;
-        mx.beginPath(); mx.arc(rod.x, ey, 4.8, 0, TWO_PI);
+        mx.beginPath(); mx.arc(rod.x, ey, 5.6, 0, TWO_PI);
         mx.fillStyle = "#2f6fd6"; mx.fill(); mx.strokeStyle = "#163a72"; mx.lineWidth = 0.8; mx.stroke();
-        seg(mx, rod.x - 2.4, ey, rod.x + 2.4, ey, "#ffffff", 1.5);
+        seg(mx, rod.x - 2.8, ey, rod.x + 2.8, ey, "#ffffff", 1.6);
       }
       mx.restore();
     }
