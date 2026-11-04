@@ -272,7 +272,7 @@ import "./style.css";
       const col = ringCol(q), fx = rod.x, fy = RY + r * PS * PD / (PD - r * PC);
       mx.strokeStyle = col; mx.lineWidth = 2.5; ringArc(RY, r, 0, Math.PI);
       {
-        const d = I >= 0 ? 1 : -1;
+        const d = I >= 0 ? -1 : 1;
         [0.25 * Math.PI - Math.PI / 9, 1.25 * Math.PI - Math.PI / 9].forEach(t0 => {
           const c = proj(RY, r, t0), p1 = proj(RY, r, t0 + 0.01), p0 = proj(RY, r, t0 - 0.01);
           const hs = Math.sin(t0) > 0 ? 12 : 10.5;
