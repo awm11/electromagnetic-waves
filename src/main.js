@@ -354,7 +354,32 @@ import "./style.css";
       mx.font = `600 12px ${FONT}`; mx.fillStyle = "#1d3f73"; mx.textAlign = "center"; mx.textBaseline = "middle";
       mx.fillText("force on the electron", cx, WIRE.bot + 18);
     }
-    inFrame(() => drawB(true));
+    inFrame(() => {
+      // Away from the wire, out-of-page B is simply drawn on top.
+      const xc = WIRE.x, r = WIRE.w / 2;
+      mx.save(); mx.beginPath(); mx.rect(0, 0, W, H); mx.rect(xc - r, 0, 2 * r, H); mx.clip("evenodd");
+      drawB(true);
+      mx.restore();
+      // Over the wire, which is a cylinder: only the part of each B vector that sticks out beyond the wire's
+      // front surface (its semicircular cross-section) can be seen.
+      const k = Math.hypot(BDIR[0], BDIR[1]);
+      const surf = sx => { const d = sx - xc; return Math.abs(d) >= r ? 0 : Math.sqrt(r * r - d * d); };
+      mx.save(); mx.beginPath(); mx.rect(xc - r, 0, 2 * r, H); mx.clip();
+      for (let i = 0; i <= N; i++) {
+        if (eV[i] <= 0) continue;
+        const bx0 = eT[i][0], by0 = rod.mid, tx = bT[i][0], ty = bT[i][1], L = eV[i] * AL * k;
+        let t0 = null;
+        for (let q = 0; q <= 60; q++) { const t = q / 60; if (t * L > surf(bx0 + (tx - bx0) * t)) { t0 = t; break; } }
+        if (t0 !== null) arrow(mx, bx0 + (tx - bx0) * t0, by0 + (ty - by0) * t0, tx, ty, "rgba(194,37,92,0.8)", 2, 8);
+      }
+      mx.strokeStyle = COL.bfield; mx.lineWidth = 2.5; mx.lineCap = "round";
+      for (let i = 0; i < N; i++) {
+        const em = (eV[i] + eV[i + 1]) / 2; if (em <= 0) continue;
+        const mxp = (bT[i][0] + bT[i + 1][0]) / 2;
+        if (em * AL * k > surf(mxp)) { mx.beginPath(); mx.moveTo(bT[i][0], bT[i][1]); mx.lineTo(bT[i + 1][0], bT[i + 1][1]); mx.stroke(); }
+      }
+      mx.lineCap = "butt"; mx.restore();
+    });
 
     pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
     pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
