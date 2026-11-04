@@ -302,11 +302,11 @@ import "./style.css";
     // The wave carries straight on past the wire. E lies in the page, behind the wire. B points out of the page
     // (drawn down-left, towards the viewer) or into it (up-right, away), so each part of B is drawn in front of
     // or behind the wire and the E wave depending on which way it points.
-    const N = 66, AL = 105, eT = [], bT = [], eV = [];
+    const N = 74, AL = 105, eT = [], bT = [], eV = [];
     // The wave runs on to the edge of the frame; clip it to the inside of the rounded border.
     const inFrame = fn => { mx.save(); rr(mx, 1.5, 1.5, W - 3, H - 3, 11); mx.clip(); fn(); mx.restore(); };
     for (let i = 0; i <= N; i++) {
-      const x = WX0 + (W + 20 - WX0) * i / N, e = eAt(x);
+      const x = WX0 + (W + 110 - WX0) * i / N, e = eAt(x);
       eV.push(e); eT.push([x, rod.mid - e * AL]);
       bT.push([x + BDIR[0] * e * AL, rod.mid + BDIR[1] * e * AL]);
     }
