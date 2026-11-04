@@ -232,7 +232,7 @@ import "./style.css";
   }
 
   const rod = { x: 190, top: -12, bot: H + 12, mid: 260 };
-  const WX0 = 320, WX1 = 1050, PROBE = 570, WXW = 985;
+  const WX0 = 320, WX1 = 1050, PROBE = 570;
   // A thick wire standing in the wave's path, with one electron in it.
   const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
@@ -299,24 +299,25 @@ import "./style.css";
 
     seg(mx, WX0 - 10, rod.mid, WX1 + 10, rod.mid, "#a7afb8", 1.5);
 
-    const N = 52, AL = 105, eT = [], bT = [];
-    // The wave runs right up to the wire; anything poking out past it is hidden behind the wire.
-    mx.save(); mx.beginPath(); mx.rect(0, 0, WIRE.x - WIRE.w / 2 + 1, H); mx.clip();
+    // The wave carries straight on past the wire. E lies in the page, behind the wire. B points out of the page
+    // (drawn down-left, towards the viewer) or into it (up-right, away), so each part of B is drawn in front of
+    // or behind the wire and the E wave depending on which way it points.
+    const N = 58, AL = 105, eT = [], bT = [], eV = [];
     for (let i = 0; i <= N; i++) {
-      const x = WX0 + (WXW - WX0) * i / N, e = eAt(x);
-      eT.push([x, rod.mid - e * AL]);
+      const x = WX0 + (WX1 - WX0) * i / N, e = eAt(x);
+      eV.push(e); eT.push([x, rod.mid - e * AL]);
       bT.push([x + BDIR[0] * e * AL, rod.mid + BDIR[1] * e * AL]);
     }
-    for (let i = 0; i <= N; i++) {
-      const x = eT[i][0], e = eAt(x);
-      arrow(mx, x, rod.mid, bT[i][0], bT[i][1], "rgba(194,37,92,0.8)", 2, 8);
-      arrow(mx, x, rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
-    }
-    [[bT, COL.bfield], [eT, COL.blue]].forEach(([pts, col]) => {
-      mx.strokeStyle = col; mx.lineWidth = 2.5; mx.beginPath();
-      pts.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
-    });
-    mx.restore();
+    const drawB = front => {
+      for (let i = 0; i <= N; i++) if ((eV[i] > 0) === front) arrow(mx, eT[i][0], rod.mid, bT[i][0], bT[i][1], "rgba(194,37,92,0.8)", 2, 8);
+      mx.strokeStyle = COL.bfield; mx.lineWidth = 2.5; mx.lineCap = "round";
+      for (let i = 0; i < N; i++) if ((eV[i] + eV[i + 1] > 0) === front) { mx.beginPath(); mx.moveTo(bT[i][0], bT[i][1]); mx.lineTo(bT[i + 1][0], bT[i + 1][1]); mx.stroke(); }
+      mx.lineCap = "butt";
+    };
+    drawB(false);
+    for (let i = 0; i <= N; i++) arrow(mx, eT[i][0], rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
+    mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath();
+    eT.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
 
     const pe = eAt(PROBE);
     if (Math.abs(pe) > 0.05) {
@@ -349,6 +350,7 @@ import "./style.css";
       mx.font = `600 12px ${FONT}`; mx.fillStyle = "#1d3f73"; mx.textAlign = "center"; mx.textBaseline = "middle";
       mx.fillText("force on the electron", cx, WIRE.bot + 18);
     }
+    drawB(true);
 
     pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
     pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
