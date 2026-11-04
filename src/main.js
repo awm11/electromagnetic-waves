@@ -1028,9 +1028,11 @@ import "./style.css";
     document.getElementById("lessonEnc").hidden = !encv;
     document.getElementById("hillBtn").hidden = !hill;
     document.getElementById("wireBtn").hidden = view !== "inside-the-wave";
-    // In Inside the wave, Transmitter on comes first and Show wire last (other modes keep their usual order).
-    document.getElementById("onBtn").style.order = view === "inside-the-wave" ? -1 : 0;
+    // In Inside the wave and Over the hill, Transmitter on comes first and the mode's own switch (Show wire or
+    // Hill in the way) comes last. Other modes keep their usual order.
+    document.getElementById("onBtn").style.order = view === "inside-the-wave" || hill ? -1 : 0;
     document.getElementById("wireBtn").style.order = view === "inside-the-wave" ? 1 : 0;
+    document.getElementById("hillBtn").style.order = hill ? 1 : 0;
     document.getElementById("statusBox").hidden = hill;
     document.getElementById("footMain").hidden = hill || encv || data;
     document.getElementById("dykEnc").hidden = !encv;
