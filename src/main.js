@@ -232,7 +232,9 @@ import "./style.css";
   }
 
   const rod = { x: 190, top: -12, bot: H + 12, mid: 260 };
-  const WX0 = 320, WX1 = 1050, PROBE = 570;
+  const WX0 = 320, WX1 = 1050, PROBE = 570, WXW = 860;
+  // A thick wire standing in the wave's path, with one electron in it.
+  const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
   const BDIR = [-0.82, 0.46];
 
@@ -299,7 +301,7 @@ import "./style.css";
 
     const N = 44, AL = 105, eT = [], bT = [];
     for (let i = 0; i <= N; i++) {
-      const x = WX0 + (WX1 - WX0) * i / N, e = eAt(x);
+      const x = WX0 + (WXW - WX0) * i / N, e = eAt(x);
       eT.push([x, rod.mid - e * AL]);
       bT.push([x + BDIR[0] * e * AL, rod.mid + BDIR[1] * e * AL]);
     }
@@ -329,6 +331,27 @@ import "./style.css";
       mx.fillStyle = COL.bfield; mx.textAlign = "right"; mx.fillText("B", bp[0] - 8, bp[1] + (se > 0 ? 10 : -6));
     }
     pill(mx, "E and B always at right angles", PROBE, rod.mid + 150);
+
+    { // The electron is pushed the opposite way to E (it has negative charge), so it oscillates up and down in the wire.
+      const d = (WIRE.x - rod.x) / V, ew = eAt(WIRE.x), cx = WIRE.x;
+      rr(mx, cx - WIRE.w / 2, WIRE.top, WIRE.w, WIRE.bot - WIRE.top, WIRE.w / 2);
+      const g = mx.createLinearGradient(cx - WIRE.w / 2, 0, cx + WIRE.w / 2, 0);
+      g.addColorStop(0, "#c98a4b"); g.addColorStop(0.45, "#f0c08a"); g.addColorStop(1, "#b0733a");
+      mx.fillStyle = g; mx.fill(); mx.strokeStyle = "#8a5a2b"; mx.lineWidth = 1.5; mx.stroke();
+      const ey2 = rod.mid + 42 * (F1 / freq) * ret(HI, d);
+      if (Math.abs(ew) > 0.05) arrow(mx, cx, ey2 + Math.sign(ew) * 13, cx, ey2 + Math.sign(ew) * (13 + 42 * Math.abs(ew)), COL.current, 3, 10);
+      mx.beginPath(); mx.arc(cx, ey2, 11, 0, TWO_PI); mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.5; mx.stroke();
+      seg(mx, cx - 5, ey2, cx + 5, ey2, "#1d3f73", 2.2);
+      const ex = WIRE.x + 52;
+      if (Math.abs(ew) > 0.05) {
+        arrow(mx, ex, rod.mid, ex, rod.mid - ew * 70, COL.blue, 3, 11);
+        mx.font = `italic 700 18px "Times New Roman", Times, Georgia, serif`; mx.fillStyle = COL.blue; mx.textAlign = "left"; mx.textBaseline = "middle";
+        mx.fillText("E", ex + 8, rod.mid - ew * 70 + (ew > 0 ? 8 : -8));
+      }
+      pill(mx, "Electron in a wire", cx, WIRE.top - 22);
+      mx.font = `600 12px ${FONT}`; mx.fillStyle = COL.current; mx.textAlign = "center"; mx.textBaseline = "middle";
+      mx.fillText("force on the electron", cx, WIRE.bot + 18);
+    }
 
     pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
     pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
