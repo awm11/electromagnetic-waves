@@ -402,9 +402,12 @@ import "./style.css";
 
     pill(mx, "E: up and down, in the page", WX1 - 2, 40, "right", COL.blue);
     pill(mx, "B: into and out of the page", WX1 - 2, 72, "right", COL.bfield);
-    arrow(mx, WX1 - 150, H - 40, WX1, H - 40, COL.ink, 3, 13);
-    mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right"; mx.textBaseline = "middle";
-    mx.fillText("travels away at the speed of light", WX1 - 162, H - 40);
+    { // "travels away" label and arrow, centred across the frame
+      mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "left"; mx.textBaseline = "middle";
+      const txt = "travels away at the speed of light", tw = mx.measureText(txt).width, aw = 150, gap = 12, x0 = W / 2 - (tw + gap + aw) / 2;
+      mx.fillText(txt, x0, H - 40);
+      arrow(mx, x0 + tw + gap, H - 40, x0 + tw + gap + aw, H - 40, COL.ink, 3, 13);
+    }
     pill(mx, "Transmitter with AC signal", rod.x + 24, 30, "left");
   }
 
