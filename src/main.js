@@ -516,11 +516,11 @@ import "./style.css";
     mx.strokeStyle = "rgba(33,102,209,0.28)"; mx.lineWidth = 1.5;
     for (let i = 0; i <= N; i += 3) { mx.beginPath(); mx.moveTo(pts[i][0], EAX); mx.lineTo(pts[i][0], pts[i][1]); mx.stroke(); }
     mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath(); pts.forEach((q, i) => i ? mx.lineTo(q[0], q[1]) : mx.moveTo(q[0], q[1])); mx.stroke();
-    pill(mx, enc === "am" ? "Radio wave: amplitude is adjusted to encode the sound wave" : "Radio wave: frequency is adjusted to encode the sound wave", (EX0 + EX1) / 2, EAX - 110);
+    pill(mx, enc === "am" ? "Radio wave: amplitude is adjusted to encode the sound wave" : "Radio wave: frequency is adjusted to encode the sound wave", (EX0 + EX1) / 2, EAX - 150);
     const tcx = (EX0 + EX1) / 2;
     mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right"; mx.textBaseline = "middle";
-    mx.fillText("travels at the speed of light", tcx + 50, EAX - 148);
-    arrow(mx, tcx + 62, EAX - 148, tcx + 180, EAX - 148, COL.ink, 2.5, 12);
+    mx.fillText("travels at the speed of light", tcx + 50, EAX - 188);
+    arrow(mx, tcx + 62, EAX - 188, tcx + 180, EAX - 188, COL.ink, 2.5, 12);
 
     const dec = { x: 820, y: 414, w: 130, h: 44 }, wy2 = dec.y + dec.h / 2;
     const rwire = [[ER.x, ER.top + 6], [ER.x, wy2], [dec.x + dec.w, wy2]];
