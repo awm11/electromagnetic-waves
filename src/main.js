@@ -140,6 +140,16 @@ import "./style.css";
     c.fillStyle = color; c.textAlign = "center"; c.textBaseline = "middle";
     c.fillText(text, left + w / 2, y + 1);
   }
+  // A pill label with several centred lines.
+  function pill2(c, lines, x, y, color = COL.ink) {
+    c.font = `700 13px ${FONT}`;
+    const lh = 17, w = Math.max(...lines.map(l => c.measureText(l).width)) + 24, h = lines.length * lh + 10;
+    rr(c, x - w / 2, y - h / 2, w, h, 12);
+    c.fillStyle = "rgba(255,255,255,0.94)"; c.fill();
+    c.strokeStyle = "#c6ccd3"; c.lineWidth = 1; c.stroke();
+    c.fillStyle = color; c.textAlign = "center"; c.textBaseline = "middle";
+    lines.forEach((l, i) => c.fillText(l, x, y - (lines.length - 1) * lh / 2 + i * lh + 1));
+  }
   function seg(c, x1, y1, x2, y2, col, w) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
   function arrow(c, x1, y1, x2, y2, col, w, head = 11) {
     const L = Math.hypot(x2 - x1, y2 - y1);
@@ -620,7 +630,7 @@ import "./style.css";
     mx.strokeStyle = "rgba(33,102,209,0.28)"; mx.lineWidth = 1.5;
     for (let i = 0; i <= N; i += 3) { mx.beginPath(); mx.moveTo(pts[i][0], EAX); mx.lineTo(pts[i][0], pts[i][1]); mx.stroke(); }
     mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath(); pts.forEach((q, i) => i ? mx.lineTo(q[0], q[1]) : mx.moveTo(q[0], q[1])); mx.stroke();
-    pill(mx, enc === "am" ? "Radio wave: amplitude is adjusted to encode the sound wave" : "Radio wave: frequency is adjusted to encode the sound wave", (EX0 + EX1) / 2, EAX - 150);
+    pill2(mx, [enc === "am" ? "Radio wave: amplitude is adjusted" : "Radio wave: frequency is adjusted", "to encode the sound wave"], (EX0 + EX1) / 2, EAX - 150);
     const tcx = (EX0 + EX1) / 2;
     mx.font = `700 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right"; mx.textBaseline = "middle";
     mx.fillText("travels at the speed of light", tcx + 50, EAX - 188);
