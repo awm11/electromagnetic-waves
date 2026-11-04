@@ -588,8 +588,9 @@ import "./style.css";
     [dKey, dTX, dRX, dEN, dPI, dPQ].forEach(b => b.fill(0));
     dn = 0; dt = 0; dph = 0; dSI = 0; dSQ = 0; dLastOn = -10; dMsgIdx = 0; dSos = null; dManual = false; dLetters = []; dFrozen = false;
   }
+  // Start with a screen full of noise only: nothing is sent until the key is pressed or Send SOS is clicked.
   function dPrime() {
-    dReset(); dSos = 0.55;
+    dReset();
     for (let i = 0; i < Math.round(7 / DDT); i++) dStep();
   }
   const dAt = (buf, back) => {
@@ -1003,7 +1004,7 @@ import "./style.css";
     if (dFreq === b.dataset.dfreq) return;
     dFreq = b.dataset.dfreq;
     document.querySelectorAll("[data-dfreq]").forEach(x => x.classList.toggle("on", x === b));
-    dReset(); dSos = 0.3;
+    dPrime();
   }));
   document.getElementById("sosBtn").addEventListener("click", () => { dSos = dt + 0.05; });
   requestAnimationFrame(loop);
