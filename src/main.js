@@ -345,12 +345,6 @@ import "./style.css";
       if (Math.abs(ew) > 0.05) arrow(mx, cx, ey2 + Math.sign(ew) * 13, cx, ey2 + Math.sign(ew) * (13 + 42 * Math.abs(ew)), COL.current, 3, 10);
       mx.beginPath(); mx.arc(cx, ey2, 11, 0, TWO_PI); mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.5; mx.stroke();
       seg(mx, cx - 5, ey2, cx + 5, ey2, "#1d3f73", 2.2);
-      const ex = WIRE.x + 52;
-      if (Math.abs(ew) > 0.05) {
-        arrow(mx, ex, rod.mid, ex, rod.mid - ew * 70, COL.blue, 3, 11);
-        mx.font = `italic 700 18px "Times New Roman", Times, Georgia, serif`; mx.fillStyle = COL.blue; mx.textAlign = "left"; mx.textBaseline = "middle";
-        mx.fillText("E", ex + 8, rod.mid - ew * 70 + (ew > 0 ? 8 : -8));
-      }
       pill(mx, "Electron in a wire", cx, WIRE.top - 22);
       mx.font = `600 12px ${FONT}`; mx.fillStyle = COL.current; mx.textAlign = "center"; mx.textBaseline = "middle";
       mx.fillText("force on the electron", cx, WIRE.bot + 18);
