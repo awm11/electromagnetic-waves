@@ -367,10 +367,18 @@ import "./style.css";
       mx.save(); mx.beginPath(); mx.rect(xc - r, 0, 2 * r, H); mx.clip();
       for (let i = 0; i <= N; i++) {
         if (eV[i] <= 0) continue;
-        const bx0 = eT[i][0], by0 = rod.mid, tx = bT[i][0], ty = bT[i][1], L = eV[i] * AL * k;
-        let t0 = null;
-        for (let q = 0; q <= 60; q++) { const t = q / 60; if (t * L > surf(bx0 + (tx - bx0) * t)) { t0 = t; break; } }
-        if (t0 !== null) arrow(mx, bx0 + (tx - bx0) * t0, by0 + (ty - by0) * t0, tx, ty, "rgba(194,37,92,0.8)", 2, 8);
+        // Walk along the vector and draw only the stretches that are further out of the page than the wire's surface.
+        const bx0 = eT[i][0], by0 = rod.mid, tx = bT[i][0], ty = bT[i][1], L = eV[i] * AL * k, len = Math.hypot(tx - bx0, ty - by0);
+        const at = t => [bx0 + (tx - bx0) * t, by0 + (ty - by0) * t], vis = t => t * L > surf(bx0 + (tx - bx0) * t);
+        mx.strokeStyle = "rgba(194,37,92,0.8)"; mx.lineWidth = 2; mx.beginPath();
+        let prev = vis(0);
+        for (let q = 1; q <= 80; q++) {
+          const t0 = (q - 1) / 80, t1 = q / 80, v = vis(t1);
+          if (prev && v) { const a = at(t0), b = at(t1); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); }
+          prev = v;
+        }
+        mx.stroke();
+        if (vis(1) && len > 4) { const a = at(Math.max(0, 1 - 12 / len)); arrow(mx, a[0], a[1], tx, ty, "rgba(194,37,92,0.8)", 2, 8); }
       }
       mx.strokeStyle = COL.bfield; mx.lineWidth = 2.5; mx.lineCap = "round";
       for (let i = 0; i < N; i++) {
