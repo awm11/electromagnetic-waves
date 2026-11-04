@@ -634,6 +634,7 @@ import "./style.css";
     rr(mx, dec.x, dec.y, dec.w, dec.h, 10); mx.fillStyle = "#ffffff"; mx.fill(); mx.strokeStyle = COL.ink; mx.lineWidth = 2; mx.stroke();
     mx.font = `600 14px ${FONT}`; mx.fillStyle = COL.ink; mx.textAlign = "center"; mx.textBaseline = "middle"; mx.fillText("Decoder", dec.x + dec.w / 2, dec.y + dec.h / 2);
     pill(mx, "Receiving aerial", ER.x, ER.top - 24);
+    pill(mx, "Slowed down millions of times", 24, H - 24, "left", COL.muted);
   }
 
   // ---- Sending data: SOS sent by switching the carrier on and off, with fixed noise and a real decoder ----
