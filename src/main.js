@@ -281,8 +281,8 @@ import "./style.css";
       for (let y = rod.top - sp; y < rod.bot + sp; y += sp) {
         const ey = y + shift;
         mx.beginPath(); mx.arc(rod.x, ey, 5.6, 0, TWO_PI);
-        mx.fillStyle = "#2f6fd6"; mx.fill(); mx.strokeStyle = "#163a72"; mx.lineWidth = 0.8; mx.stroke();
-        seg(mx, rod.x - 2.8, ey, rod.x + 2.8, ey, "#ffffff", 1.6);
+        mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.2; mx.stroke();
+        seg(mx, rod.x - 2.8, ey, rod.x + 2.8, ey, "#1d3f73", 1.8);
       }
       mx.restore();
     }
