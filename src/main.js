@@ -236,7 +236,7 @@ import "./style.css";
   // A thick wire standing in the wave's path, with one electron in it.
   const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
-  const BDIR = [-0.82, 0.46];
+  const BDIR = [-0.82, 0.46], PROBE_E = "#0d47a8", PROBE_B = "#99124a";
 
   function drawWaveView() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
@@ -302,42 +302,29 @@ import "./style.css";
     // The wave carries straight on past the wire. E lies in the page, behind the wire. B points out of the page
     // (drawn down-left, towards the viewer) or into it (up-right, away), so each part of B is drawn in front of
     // or behind the wire and the E wave depending on which way it points.
-    const N = 74, AL = 105, eT = [], bT = [], eV = [];
+    // Curves are sampled finely, with one sample exactly at PROBE so the bold arrows sit on the curves.
+    // The thin arrows are drawn at every third sample.
+    const AL = 105, STEP = (PROBE - WX0) / 63, N = Math.ceil((W + 110 - WX0) / STEP), eT = [], bT = [], eV = [], isArrow = i => i % 3 === 0;
     // The wave runs on to the edge of the frame; clip it to the inside of the rounded border.
     const inFrame = fn => { mx.save(); rr(mx, 1.5, 1.5, W - 3, H - 3, 11); mx.clip(); fn(); mx.restore(); };
     for (let i = 0; i <= N; i++) {
-      const x = WX0 + (W + 110 - WX0) * i / N, e = eAt(x);
+      const x = WX0 + STEP * i, e = eAt(x);
       eV.push(e); eT.push([x, rod.mid - e * AL]);
       bT.push([x + BDIR[0] * e * AL, rod.mid + BDIR[1] * e * AL]);
     }
     const drawB = front => {
-      for (let i = 0; i <= N; i++) if ((eV[i] > 0) === front) arrow(mx, eT[i][0], rod.mid, bT[i][0], bT[i][1], "rgba(194,37,92,0.8)", 2, 8);
+      for (let i = 0; i <= N; i++) if (isArrow(i) && (eV[i] > 0) === front) arrow(mx, eT[i][0], rod.mid, bT[i][0], bT[i][1], "rgba(194,37,92,0.8)", 2, 8);
       mx.strokeStyle = COL.bfield; mx.lineWidth = 2.5; mx.lineCap = "round";
       for (let i = 0; i < N; i++) if ((eV[i] + eV[i + 1] > 0) === front) { mx.beginPath(); mx.moveTo(bT[i][0], bT[i][1]); mx.lineTo(bT[i + 1][0], bT[i + 1][1]); mx.stroke(); }
       mx.lineCap = "butt";
     };
     inFrame(() => {
       drawB(false);
-      for (let i = 0; i <= N; i++) arrow(mx, eT[i][0], rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
+      for (let i = 0; i <= N; i++) if (isArrow(i)) arrow(mx, eT[i][0], rod.mid, eT[i][0], eT[i][1], "rgba(33,102,209,0.85)", 2, 8);
       mx.strokeStyle = COL.blue; mx.lineWidth = 2.5; mx.beginPath();
       eT.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
     });
 
-    const pe = eAt(PROBE);
-    if (Math.abs(pe) > 0.05) {
-      const ep = [PROBE, rod.mid - pe * AL], bp = [PROBE + BDIR[0] * pe * AL, rod.mid + BDIR[1] * pe * AL];
-      arrow(mx, PROBE, rod.mid, bp[0], bp[1], COL.bfield, 4.5, 15);
-      arrow(mx, PROBE, rod.mid, ep[0], ep[1], COL.blue, 4.5, 15);
-      const se = Math.sign(pe), m = 13, bl = Math.hypot(BDIR[0], BDIR[1]);
-      const u1 = [0, -se], u2 = [BDIR[0] / bl * se, BDIR[1] / bl * se];
-      mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.beginPath();
-      mx.moveTo(PROBE + u1[0] * m, rod.mid + u1[1] * m);
-      mx.lineTo(PROBE + (u1[0] + u2[0]) * m, rod.mid + (u1[1] + u2[1]) * m);
-      mx.lineTo(PROBE + u2[0] * m, rod.mid + u2[1] * m); mx.stroke();
-      mx.font = `italic 700 20px "Times New Roman", Times, Georgia, serif`;
-      mx.fillStyle = COL.blue; mx.textAlign = "left"; mx.fillText("E", ep[0] + 10, ep[1] + (se > 0 ? 6 : -4));
-      mx.fillStyle = COL.bfield; mx.textAlign = "right"; mx.fillText("B", bp[0] - 8, bp[1] + (se > 0 ? 10 : -6));
-    }
     pill(mx, "E and B always at right angles", PROBE, rod.mid + 150);
 
     { // The electron is pushed the opposite way to E (it has negative charge), so it oscillates up and down in the wire.
@@ -377,7 +364,7 @@ import "./style.css";
       const surf = sx => { const d = sx - xc; return Math.abs(d) >= r ? 0 : Math.sqrt(r * r - d * d); };
       mx.save(); mx.beginPath(); mx.rect(xc - r, 0, 2 * r, H); mx.clip();
       for (let i = 0; i <= N; i++) {
-        if (eV[i] <= 0) continue;
+        if (!isArrow(i) || eV[i] <= 0) continue;
         // Walk along the vector and draw only the stretches that are further out of the page than the wire's surface.
         const bx0 = eT[i][0], by0 = rod.mid, tx = bT[i][0], ty = bT[i][1], L = eV[i] * AL * k, len = Math.hypot(tx - bx0, ty - by0);
         const at = t => [bx0 + (tx - bx0) * t, by0 + (ty - by0) * t], vis = t => t * L > surf(bx0 + (tx - bx0) * t);
@@ -399,6 +386,22 @@ import "./style.css";
       }
       mx.lineCap = "butt"; mx.restore();
     });
+    // The bold E and B arrows at one point, drawn last and in darker shades so they stand out.
+    const pe = eAt(PROBE);
+    if (Math.abs(pe) > 0.05) {
+      const ep = [PROBE, rod.mid - pe * AL], bp = [PROBE + BDIR[0] * pe * AL, rod.mid + BDIR[1] * pe * AL];
+      arrow(mx, PROBE, rod.mid, bp[0], bp[1], PROBE_B, 5, 16);
+      arrow(mx, PROBE, rod.mid, ep[0], ep[1], PROBE_E, 5, 16);
+      const se = Math.sign(pe), m = 13, bl = Math.hypot(BDIR[0], BDIR[1]);
+      const u1 = [0, -se], u2 = [BDIR[0] / bl * se, BDIR[1] / bl * se];
+      mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.beginPath();
+      mx.moveTo(PROBE + u1[0] * m, rod.mid + u1[1] * m);
+      mx.lineTo(PROBE + (u1[0] + u2[0]) * m, rod.mid + (u1[1] + u2[1]) * m);
+      mx.lineTo(PROBE + u2[0] * m, rod.mid + u2[1] * m); mx.stroke();
+      mx.font = `italic 700 20px "Times New Roman", Times, Georgia, serif`;
+      mx.fillStyle = PROBE_E; mx.textAlign = "left"; mx.fillText("E", ep[0] + 10, ep[1] + (se > 0 ? 6 : -4));
+      mx.fillStyle = PROBE_B; mx.textAlign = "right"; mx.fillText("B", bp[0] - 8, bp[1] + (se > 0 ? 10 : -6));
+    }
 
     pill(mx, "E: up and down, in the page", PROBE, 40, "center", COL.blue);
     pill(mx, "B: into and out of the page", PROBE, 72, "center", COL.bfield);
