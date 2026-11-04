@@ -554,7 +554,7 @@ import "./style.css";
   }
 
   // ---- Sending data: on-off keying with a Morse key, fixed noise, and a real decoder ----
-  const DDT = 1 / 240, DBUF = 6000, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
+  const DDT = 1 / 240, DBUF = 14400, DWIN = 6.5, DNOISE = 0.45, DU = 0.2;
   const DFREQ = { low: 2, medium: 7.5, high: 18 };
   const MORSE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z" };
   // SOS in Morse units: dot = 1, dash = 3, gap inside a letter = 1, gap between letters = 3.
@@ -563,6 +563,8 @@ import "./style.css";
   const dKey = new Float32Array(DBUF), dTX = new Float32Array(DBUF), dRX = new Float32Array(DBUF), dEN = new Float32Array(DBUF), dPI = new Float32Array(DBUF), dPQ = new Float32Array(DBUF);
   let dLetters = [], dFrozen = false, dMsgManual = false, dFreq = "high", dn = 0, dt = 0, dph = 0, dSI = 0, dSQ = 0, dManual = false, dSos = null, dMsgIdx = 0, dLastOn = -10, dacc = 0;
   const dWinN = () => Math.round(2 / DFREQ[dFreq] / DDT);
+  // How long a pause ends a hand-tapped message (longer at low frequency, where tapping has to be slow).
+  const dBreak = () => Math.max(4, 8 * dWinN() * DDT);
   let gSpare = null;
   const gauss = () => {
     if (gSpare !== null) { const g = gSpare; gSpare = null; return g; }
@@ -573,7 +575,7 @@ import "./style.css";
     dt += DDT;
     const fq = DFREQ[dFreq];
     const key = dManual || (dSos !== null && sosOn(dt - dSos)) ? 1 : 0;
-    if (key) { if (dt - dLastOn > (dManual ? 4 : 1.2)) { dMsgIdx = dn; dMsgManual = dManual; } dLastOn = dt; }
+    if (key) { if (dt - dLastOn > (dManual ? dBreak() : 1.2)) { dMsgIdx = dn; dMsgManual = dManual; } dLastOn = dt; }
     dph += TWO_PI * fq * DDT;
     const tx = key * Math.sin(dph), rx = tx + DNOISE * gauss(), k = dn % DBUF;
     dKey[k] = key; dTX[k] = tx; dRX[k] = rx;
@@ -629,6 +631,59 @@ import "./style.css";
     }
     return best.mb - best.ma < Math.log(1.8) ? null : Math.exp((best.ma + best.mb) / 2);
   }
+  // Hand-tapped Morse. Presses are sorted into short (dots) and long (dashes) by comparing them with each other.
+  // Then, rather than one fixed "end of letter" gap, every way of splitting the dots and dashes into real Morse
+  // letters is tried, and the split that best fits the gaps wins: long gaps favour a new letter, short gaps don't.
+  const MORSE_PREFIX = new Set(); Object.keys(MORSE).forEach(c => { for (let i = 1; i <= c.length; i++) MORSE_PREFIX.add(c.slice(0, i)); });
+  function dDecodeHand(runs) {
+    const Wsec = dWinN() * DDT, longMax = Math.max(3, 6 * Wsec);
+    const marks = [], gaps = []; let mk = null, gap = 0;
+    runs.forEach(r => {
+      const sec = r.n * DDT;
+      if (r.s === 0) { if (mk) { marks.push(mk); mk = null; } gap += sec; }
+      else {
+        if (!mk) { if (marks.length) gaps.push(gap); gap = 0; mk = { on: 0, unsure: false }; }
+        if (r.s === 1) mk.on += sec; else mk.unsure = true;
+      }
+    });
+    const pressing = !!mk; if (mk) marks.push(mk);
+    const trailing = pressing ? 0 : gap;
+    const letters = []; letters.pending = "";
+    if (!marks.length) return letters;
+    marks.forEach(m => { if (m.on === 0 || m.on > longMax) m.unsure = true; });
+    const ons = marks.filter(m => !m.unsure).map(m => m.on);
+    let dotMax = Infinity;
+    if (ons.length) {
+      const cut = split2(ons);
+      dotMax = cut !== null ? cut : Math.max(...ons) < Math.max(0.45, 3 * Wsec) ? Infinity : 0;
+    }
+    const dots = ons.filter(x => x < dotMax), dashes = ons.filter(x => x >= dotMax);
+    const unit = dots.length ? dots.reduce((a, b) => a + b) / dots.length : dashes.length ? dashes.reduce((a, b) => a + b) / dashes.length / 3 : 0.2;
+    const gcut = split2(gaps);
+    const gRef = gcut !== null ? Math.max(gcut, 1.8 * unit) : 2.2 * unit;
+    const sc = g => g >= 4.5 * unit && g > gRef ? 100 : 3 * Math.log(g / gRef);
+    const sym = marks.map(m => m.unsure ? "?" : m.on < dotMax ? "." : "-");
+    const N = marks.length, ended = !pressing && trailing >= gRef;
+    const segScore = (i, j) => {
+      const code = sym.slice(i, j).join("");
+      if (code.includes("?")) return -1;
+      if (j === N && !ended) return MORSE_PREFIX.has(code) ? 0 : -8;
+      return MORSE[code] ? 0 : -8;
+    };
+    const best = new Array(N + 1).fill(-Infinity), from = new Array(N + 1).fill(0); best[0] = 0;
+    for (let j = 1; j <= N; j++) for (let i = Math.max(0, j - 6); i < j; i++) {
+      let v = best[i] + segScore(i, j) + (i > 0 ? sc(gaps[i - 1]) : 0);
+      for (let k = i; k < j - 1; k++) v -= sc(gaps[k]);
+      if (v > best[j]) { best[j] = v; from[j] = i; }
+    }
+    const segs = []; for (let j = N; j > 0; j = from[j]) segs.unshift([from[j], j]);
+    segs.forEach(([i, j], n) => {
+      const code = sym.slice(i, j).join("");
+      if (n === segs.length - 1 && !ended) letters.pending = code.includes("?") ? "?" : code;
+      else letters.push({ c: code.includes("?") ? "?" : (MORSE[code] || "?"), code: code.includes("?") ? "" : code });
+    });
+    return letters;
+  }
   // Read those decisions back as Morse letters.
   function dDecode(D) {
     const { m0, arr } = D, from = Math.max(0, dMsgIdx - m0);
@@ -637,24 +692,9 @@ import "./style.css";
       const s = arr[i], r = runs[runs.length - 1];
       if (r && r.s === s) r.n++; else runs.push({ s, n: 1 });
     }
-    // SOS is sent with exact timing. Hand taps are judged against each other instead: presses are sorted into a
-    // short group (dots) and a long group (dashes), and gaps into short (inside a letter) and long (between letters).
-    let dotMax = 0.4, gapMin = 0.45, longMax = 1.4;
-    if (dMsgManual) {
-      longMax = 3;
-      const ons = runs.filter(r => r.s === 1).map(r => r.n * DDT).filter(x => x <= longMax);
-      if (ons.length) {
-        const cut = split2(ons);
-        dotMax = cut !== null ? cut : Math.max(...ons) < 0.45 ? Infinity : 0;
-        const dots = ons.filter(x => x < dotMax), dashes = ons.filter(x => x >= dotMax);
-        const unit = dots.length ? dots.reduce((a, b) => a + b) / dots.length : dashes.reduce((a, b) => a + b) / dashes.length / 3;
-        const firstOn = runs.findIndex(r => r.s === 1);
-        let lastOn = -1; runs.forEach((r, i) => { if (r.s === 1) lastOn = i; });
-        const gaps = runs.slice(firstOn, lastOn + 1).filter(r => r.s === 0).map(r => r.n * DDT);
-        const gcut = split2(gaps);
-        gapMin = gcut !== null ? Math.max(gcut, 2 * unit) : 2.5 * unit;
-      }
-    }
+    if (dMsgManual) return dDecodeHand(runs);
+    // SOS is sent with exact timing, so fixed thresholds are enough.
+    const dotMax = 2 * DU, gapMin = 2.25 * DU, longMax = 7 * DU;
     const letters = []; let cur = "", unsure = false;
     const close = () => { if (cur || unsure) letters.push({ c: unsure ? "?" : (MORSE[cur] || "?"), code: unsure ? "" : cur }); cur = ""; unsure = false; };
     runs.forEach((r, i) => {
@@ -760,7 +800,7 @@ import "./style.css";
 
     // Decoded message box
     // Once a message has finished arriving, keep showing what was decoded, even after it scrolls out of memory.
-    if (dt - dLastOn < 4.5 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= 4.5; }
+    if (dt - dLastOn < dBreak() + 0.5 || !dFrozen) { dLetters = dDecode(D); dFrozen = dt - dLastOn >= dBreak() + 0.5; }
     const letters = dLetters, bx = 34, by = 386, bw = 210, bh = 104;
     rr(mx, bx, by, bw, bh, 12); mx.fillStyle = "#fafbfc"; mx.fill(); mx.strokeStyle = COL.line; mx.lineWidth = 1.5; mx.stroke();
     mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("Decoded message", bx + bw / 2, by + 20);
