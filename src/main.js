@@ -274,15 +274,15 @@ import "./style.css";
     rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8);
     mx.fillStyle = "#d4dfea"; mx.fill(); mx.strokeStyle = "#9fb0c2"; mx.lineWidth = 1.5; mx.stroke();
 
-    { // Electrons in the transmitter, in two staggered columns. They move the opposite way to the current
+    { // Electrons in the transmitter, in a single column. They move the opposite way to the current
       // (flowOff falls while the current flows up), so they shuffle down when the current is upwards.
       const sp = 14, shift = ((-flowOff % sp) + sp) % sp;
       mx.save(); rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8); mx.clip();
-      mx.fillStyle = "#2f6fd6"; mx.strokeStyle = "#163a72"; mx.lineWidth = 0.8;
       for (let y = rod.top - sp; y < rod.bot + sp; y += sp) {
-        [[rod.x - 3.6, y + shift], [rod.x + 3.6, y + shift + sp / 2]].forEach(([ex, ey]) => {
-          mx.beginPath(); mx.arc(ex, ey, 3.2, 0, TWO_PI); mx.fill(); mx.stroke();
-        });
+        const ey = y + shift;
+        mx.beginPath(); mx.arc(rod.x, ey, 4.8, 0, TWO_PI);
+        mx.fillStyle = "#2f6fd6"; mx.fill(); mx.strokeStyle = "#163a72"; mx.lineWidth = 0.8; mx.stroke();
+        seg(mx, rod.x - 2.4, ey, rod.x + 2.4, ey, "#ffffff", 1.5);
       }
       mx.restore();
     }
