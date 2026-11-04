@@ -44,7 +44,9 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spac
 .didYouKnow { margin-top: 14px; background: var(--blue-light); border: 1px solid #c4dafa; border-radius: 14px; padding: 14px 18px; font-size: 14px; line-height: 1.5; color: #1d3f73; }
 .didYouKnow b { color: var(--blue); }
 [hidden] { display: none !important; }
-.seg.sendBtn { margin-left: 8px; background: var(--blue); border-color: var(--blue); color: #fff; }
+.dataBar { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.dataBar .btnRow .barLabel { min-width: 128px; }
+.seg.sendBtn { padding: 10px 22px; background: var(--blue); border-color: var(--blue); color: #fff; }
 .seg.sendBtn:active { transform: translateY(1px); }
 .toggles { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; }
 .switchBtn { display: flex; align-items: center; gap: 11px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; padding: 4px 0; }

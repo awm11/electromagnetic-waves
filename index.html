@@ -38,7 +38,8 @@
           <button class="seg on" id="sigSteady" data-mode="steady">Steady frequency</button>
           <button class="seg" id="sigChanging" data-mode="changing">Changing</button>
         </div>
-        <div id="dataBar" hidden>
+        <div id="dataBar" class="dataBar" hidden>
+          <div>
           <div class="btnRow" role="group" aria-label="Carrier frequency">
             <span class="barLabel">Carrier frequency</span>
             <button class="seg" data-dfreq="low">Low</button>
@@ -49,8 +50,9 @@
             <span class="barLabel">Sending speed</span>
             <button class="seg on" data-dspeed="normal">Normal</button>
             <button class="seg" data-dspeed="slow">Slow</button>
-            <button class="seg sendBtn" id="sosBtn">Send SOS</button>
           </div>
+          </div>
+          <button class="seg sendBtn" id="sosBtn">Send SOS</button>
         </div>
         <div class="btnRow" id="encBar" role="group" aria-label="Encoding" hidden>
           <span class="barLabel">Encoding</span>
