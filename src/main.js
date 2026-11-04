@@ -232,7 +232,7 @@ import "./style.css";
   }
 
   const rod = { x: 190, top: -12, bot: H + 12, mid: 260 };
-  const WX0 = 320, WX1 = 1050, PROBE = 570, WXW = 860;
+  const WX0 = 320, WX1 = 1050, PROBE = 570, WXW = 985;
   // A thick wire standing in the wave's path, with one electron in it.
   const WIRE = { x: 985, top: 135, bot: 385, w: 38 };
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
@@ -299,7 +299,9 @@ import "./style.css";
 
     seg(mx, WX0 - 10, rod.mid, WX1 + 10, rod.mid, "#a7afb8", 1.5);
 
-    const N = 44, AL = 105, eT = [], bT = [];
+    const N = 52, AL = 105, eT = [], bT = [];
+    // The wave runs right up to the wire; anything poking out past it is hidden behind the wire.
+    mx.save(); mx.beginPath(); mx.rect(0, 0, WIRE.x - WIRE.w / 2 + 1, H); mx.clip();
     for (let i = 0; i <= N; i++) {
       const x = WX0 + (WXW - WX0) * i / N, e = eAt(x);
       eT.push([x, rod.mid - e * AL]);
@@ -314,6 +316,7 @@ import "./style.css";
       mx.strokeStyle = col; mx.lineWidth = 2.5; mx.beginPath();
       pts.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.stroke();
     });
+    mx.restore();
 
     const pe = eAt(PROBE);
     if (Math.abs(pe) > 0.05) {
