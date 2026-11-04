@@ -202,7 +202,6 @@ import "./style.css";
   const WX0 = 320, WX1 = 1050, PROBE = 570;
   function eAt(x) { return ret(HS, (x - rod.x) / V); }
   const BDIR = [-0.82, 0.46];
-  let labSign = 1;
 
   function drawWaveView() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
@@ -282,24 +281,19 @@ import "./style.css";
     });
 
     const pe = eAt(PROBE);
-    if (Math.abs(pe) > 0.002) labSign = Math.sign(pe);
-    {
+    if (Math.abs(pe) > 0.05) {
       const ep = [PROBE, rod.mid - pe * AL], bp = [PROBE + BDIR[0] * pe * AL, rod.mid + BDIR[1] * pe * AL];
       arrow(mx, PROBE, rod.mid, bp[0], bp[1], COL.bfield, 4.5, 15);
       arrow(mx, PROBE, rod.mid, ep[0], ep[1], COL.blue, 4.5, 15);
-      const se = labSign, bl = Math.hypot(BDIR[0], BDIR[1]), bu = [BDIR[0] / bl, BDIR[1] / bl];
-      if (Math.abs(pe) > 0.15) {
-        const m = 13, u1 = [0, -se], u2 = [bu[0] * se, bu[1] * se];
-        mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.beginPath();
-        mx.moveTo(PROBE + u1[0] * m, rod.mid + u1[1] * m);
-        mx.lineTo(PROBE + (u1[0] + u2[0]) * m, rod.mid + (u1[1] + u2[1]) * m);
-        mx.lineTo(PROBE + u2[0] * m, rod.mid + u2[1] * m); mx.stroke();
-      }
-      // Labels stay fully visible: E sits just beside its arrow tip, B just beyond its tip along the B direction.
-      const eL = Math.max(Math.abs(pe) * AL, 16), bL = Math.max(Math.abs(pe) * AL, 16) + 16;
-      mx.font = `italic 700 22px "Times New Roman", Times, Georgia, serif`; mx.textAlign = "center"; mx.textBaseline = "middle";
-      mx.fillStyle = COL.blue; mx.fillText("E", PROBE + 16, rod.mid - se * eL);
-      mx.fillStyle = COL.bfield; mx.fillText("B", PROBE + bu[0] * se * bL, rod.mid + bu[1] * se * bL + 2);
+      const se = Math.sign(pe), m = 13, bl = Math.hypot(BDIR[0], BDIR[1]);
+      const u1 = [0, -se], u2 = [BDIR[0] / bl * se, BDIR[1] / bl * se];
+      mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.beginPath();
+      mx.moveTo(PROBE + u1[0] * m, rod.mid + u1[1] * m);
+      mx.lineTo(PROBE + (u1[0] + u2[0]) * m, rod.mid + (u1[1] + u2[1]) * m);
+      mx.lineTo(PROBE + u2[0] * m, rod.mid + u2[1] * m); mx.stroke();
+      mx.font = `italic 700 20px "Times New Roman", Times, Georgia, serif`;
+      mx.fillStyle = COL.blue; mx.textAlign = "left"; mx.fillText("E", ep[0] + 10, ep[1] + (se > 0 ? 6 : -4));
+      mx.fillStyle = COL.bfield; mx.textAlign = "right"; mx.fillText("B", bp[0] - 8, bp[1] + (se > 0 ? 10 : -6));
     }
     pill(mx, "E and B always at right angles", PROBE, rod.mid + 150);
 
@@ -421,6 +415,7 @@ import "./style.css";
   }
 
   const EDT = 1 / 240, EBUF = 2400, EFC = 5, EV = 150, EDEV = 2;
+  const fcNow = () => enc === "fm" ? EFC * 1.5 : EFC;
   const EM = { x: 520, base: 470, top: 250 }, ER = { x: 1000, top: 250, bot: 410 }, EAX = 330, EX0 = 560, EX1 = 940, EXW = W - 16;
   const eM = new Float32Array(EBUF), eS = new Float32Array(EBUF), eA = new Float32Array(EBUF), eC = new Float32Array(EBUF), eD = new Float32Array(EBUF);
   const DP = Math.round(1 / (EFC * EDT));
@@ -435,12 +430,12 @@ import "./style.css";
     const snd = sound(et);
     let m;
     if (enc === "am") { ephase += TWO_PI * EFC * EDT; m = eamp * (1 + 0.6 * snd) * Math.sin(ephase) / 1.6; }
-    else { ephase += TWO_PI * (EFC + EDEV * snd) * EDT; m = eamp * Math.sin(ephase); }
+    else { ephase += TWO_PI * (fcNow() + EDEV * snd) * EDT; m = eamp * Math.sin(ephase); }
     const k = en % EBUF;
-    eM[k] = m; eS[k] = snd; eA[k] = eamp; eC[k] = Math.sin(TWO_PI * EFC * et);
+    eM[k] = m; eS[k] = snd; eA[k] = eamp; eC[k] = Math.sin(TWO_PI * fcNow() * et);
     en++;
     const rv = encAt(eM, (ER.x - EM.x) / EV);
-    DEC.lo += TWO_PI * EFC * EDT;
+    DEC.lo += TWO_PI * fcNow() * EDT;
     const pi = rv * Math.cos(DEC.lo), pq = rv * Math.sin(DEC.lo), kk = DEC.k % DP;
     DEC.si += pi - DEC.bi[kk]; DEC.sq += pq - DEC.bq[kk]; DEC.bi[kk] = pi; DEC.bq[kk] = pq; DEC.k++;
     const I = DEC.si / DP, Q = DEC.sq / DP, Aenv = 2 * Math.hypot(I, Q);
