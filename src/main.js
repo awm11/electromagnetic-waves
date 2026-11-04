@@ -271,8 +271,12 @@ import "./style.css";
     };
     RYS.forEach(RY => RINGS.forEach((r, q) => { mx.strokeStyle = ringCol(q); mx.lineWidth = 2.5; ringArc(RY, r, Math.PI, TWO_PI); }));
 
+    // Copper, like the wire on the right, so the pale electrons stand out against it.
     rr(mx, rod.x - 8, rod.top, 16, rod.bot - rod.top, 8);
-    mx.fillStyle = "#d4dfea"; mx.fill(); mx.strokeStyle = "#9fb0c2"; mx.lineWidth = 1.5; mx.stroke();
+    { const g = mx.createLinearGradient(rod.x - 8, 0, rod.x + 8, 0);
+      g.addColorStop(0, "#b8783d"); g.addColorStop(0.45, "#dc9f62"); g.addColorStop(1, "#a0652f");
+      mx.fillStyle = g; }
+    mx.fill(); mx.strokeStyle = "#7a4c22"; mx.lineWidth = 1.5; mx.stroke();
 
     { // Electrons in the transmitter, in a single column. They move the opposite way to the current
       // (flowOff falls while the current flows up), so they shuffle down when the current is upwards.
@@ -281,7 +285,7 @@ import "./style.css";
       for (let y = rod.top - sp; y < rod.bot + sp; y += sp) {
         const ey = y + shift;
         mx.beginPath(); mx.arc(rod.x, ey, 5.6, 0, TWO_PI);
-        mx.fillStyle = "#b5d4f4"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.2; mx.stroke();
+        mx.fillStyle = "#c9e3fb"; mx.fill(); mx.strokeStyle = "#1d3f73"; mx.lineWidth = 1.2; mx.stroke();
         seg(mx, rod.x - 2.8, ey, rod.x + 2.8, ey, "#1d3f73", 1.8);
       }
       mx.restore();
