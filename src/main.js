@@ -1013,7 +1013,8 @@ import "./style.css";
   function setView(v) {
     view = ["inside-the-wave", "over-the-hill", "encoding", "sending-data"].includes(v) ? v : "field-map";
     viewBtns.forEach(b => b.classList.toggle("on", b.dataset.view === view));
-    document.getElementById("intro").textContent = INTROS[view];
+    // Keep the last three words together, so a wrapped line never ends with one or two words on their own.
+    document.getElementById("intro").textContent = INTROS[view].replace(/ (\S+) (\S+)$/, "\u00a0$1\u00a0$2");
     const hill = view === "over-the-hill", encv = view === "encoding", data = view === "sending-data";
     document.getElementById("sigBar").hidden = hill || encv || data;
     document.getElementById("dataBar").hidden = !data;
