@@ -83,38 +83,37 @@ import "./infrared.css";
   const OC = { x: (IN.x0 + IN.x1) / 2, y: (IN.y0 + IN.y1) / 2 + 14 };
   const SHAPE = { banana: [100, 46], pottery: [62, 76], bagel: [88, 56] }; // rough size, for shading
 
-  // A wooden cupboard frame: four mitred boards, each with grain running along its length.
-  function drawWoodFrame() {
-    const { x0, y0, x1, y1 } = ROOM, w = ROOM.wall, ix0 = IN.x0, iy0 = IN.y0, ix1 = IN.x1, iy1 = IN.y1;
-    const boards = [ // corners of each board, which way its length runs, and a slightly different shade
-      { pts: [[x0, y0], [x1, y0], [ix1, iy0], [ix0, iy0]], along: "x", c: "#ac7b4b", seed: 1 },
-      { pts: [[x0, y1], [x1, y1], [ix1, iy1], [ix0, iy1]], along: "x", c: "#a27245", seed: 2 },
-      { pts: [[x0, y0], [ix0, iy0], [ix0, iy1], [x0, y1]], along: "y", c: "#a67647", seed: 3 },
-      { pts: [[x1, y0], [ix1, iy0], [ix1, iy1], [x1, y1]], along: "y", c: "#a97849", seed: 4 },
-    ];
-    mx.save(); rr(mx, x0, y0, x1 - x0, y1 - y0, 10); mx.clip();
-    for (const b of boards) {
-      mx.save(); mx.beginPath(); b.pts.forEach((q, i) => i ? mx.lineTo(q[0], q[1]) : mx.moveTo(q[0], q[1])); mx.closePath(); mx.clip();
-      mx.fillStyle = b.c; mx.fillRect(x0, y0, x1 - x0, y1 - y0);
-      const horiz = b.along === "x", a0 = horiz ? x0 : y0, a1 = horiz ? x1 : y1;
-      const c0 = horiz ? (b.seed === 1 ? y0 : iy1) : (b.seed === 3 ? x0 : ix1); // where the board starts across its width
-      for (let k = 0; k < 9; k++) {
-        const across = c0 + 1.5 + k * (w - 3) / 8, f = 0.013 + 0.006 * ((k * 7 + b.seed) % 5), ph = k * 1.7 + b.seed * 2.3;
-        const amp = 0.8 + ((k * 5 + b.seed) % 4) * 0.45;
-        mx.beginPath();
-        for (let a = a0; a <= a1; a += 4) {
-          const o = amp * Math.sin(a * f + ph) + 0.6 * Math.sin(a * f * 3.1 + ph * 1.3);
-          horiz ? (a === a0 ? mx.moveTo(a, across + o) : mx.lineTo(a, across + o)) : (a === a0 ? mx.moveTo(across + o, a) : mx.lineTo(across + o, a));
-        }
-        mx.strokeStyle = k % 3 === 0 ? "rgba(80,45,15,0.30)" : "rgba(80,45,15,0.16)"; mx.lineWidth = k % 3 === 0 ? 1.2 : 0.8; mx.stroke();
+  // Wooden boards with grain running along their length. A cupboard is built from two full-height side panels,
+  // with the top, bottom and shelf as boards fitted between them.
+  function woodBoard(bx0, by0, bx1, by1, horiz, c, seed) {
+    mx.save(); mx.beginPath(); mx.rect(bx0, by0, bx1 - bx0, by1 - by0); mx.clip();
+    mx.fillStyle = c; mx.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
+    const a0 = horiz ? bx0 : by0, a1 = horiz ? bx1 : by1, c0 = horiz ? by0 : bx0, wid = horiz ? by1 - by0 : bx1 - bx0;
+    const n = Math.max(2, Math.round(wid / 2.7));
+    for (let k = 0; k <= n; k++) {
+      const across = c0 + 1.5 + k * (wid - 3) / n, f = 0.011 + 0.005 * ((k * 7 + seed) % 5), ph = k * 1.7 + seed * 2.3;
+      const amp = 0.5 + ((k * 5 + seed) % 4) * 0.3;
+      mx.beginPath();
+      for (let a = a0; a <= a1 + 4; a += 4) {
+        const o = amp * Math.sin(a * f + ph) + 0.4 * Math.sin(a * f * 3.1 + ph * 1.3);
+        horiz ? (a === a0 ? mx.moveTo(a, across + o) : mx.lineTo(a, across + o)) : (a === a0 ? mx.moveTo(across + o, a) : mx.lineTo(across + o, a));
       }
-      mx.restore();
+      mx.strokeStyle = k % 3 === 0 ? "rgba(80,45,15,0.28)" : "rgba(80,45,15,0.15)"; mx.lineWidth = k % 3 === 0 ? 1.1 : 0.8; mx.stroke();
     }
-    // mitre joints at the corners
-    mx.strokeStyle = "rgba(70,38,12,0.45)"; mx.lineWidth = 1;
-    [[x0, y0, ix0, iy0], [x1, y0, ix1, iy0], [x0, y1, ix0, iy1], [x1, y1, ix1, iy1]].forEach(([a, b, c, d]) => { mx.beginPath(); mx.moveTo(a, b); mx.lineTo(c, d); mx.stroke(); });
-    // a light outer edge and a shadowed inner edge so the frame looks raised
-    mx.strokeStyle = "rgba(255,235,205,0.35)"; mx.lineWidth = 2; rr(mx, x0 + 1, y0 + 1, x1 - x0 - 2, y1 - y0 - 2, 9); mx.stroke();
+    mx.restore();
+  }
+  function drawWoodFrame() {
+    const { x0, y0, x1, y1 } = ROOM, ix0 = IN.x0, iy0 = IN.y0, ix1 = IN.x1, iy1 = IN.y1;
+    mx.save(); rr(mx, x0, y0, x1 - x0, y1 - y0, 4); mx.clip();
+    woodBoard(x0, y0, ix0, y1, false, "#a67647", 3);   // left side, full height
+    woodBoard(ix1, y0, x1, y1, false, "#a97849", 4);   // right side, full height
+    woodBoard(ix0, y0, ix1, iy0, true, "#ac7b4b", 1);  // top, between the sides
+    woodBoard(ix0, iy1, ix1, y1, true, "#a27245", 2);  // bottom, between the sides
+    // joints where the top and bottom meet the side panels
+    mx.strokeStyle = "rgba(70,38,12,0.5)"; mx.lineWidth = 1;
+    [[ix0, y0, iy0], [ix1, y0, iy0], [ix0, iy1, y1], [ix1, iy1, y1]].forEach(([x, ya, yb]) => { mx.beginPath(); mx.moveTo(x, ya); mx.lineTo(x, yb); mx.stroke(); });
+    // a light outer edge and a shadowed inner edge so the boards look solid
+    mx.strokeStyle = "rgba(255,235,205,0.3)"; mx.lineWidth = 2; rr(mx, x0 + 1, y0 + 1, x1 - x0 - 2, y1 - y0 - 2, 3); mx.stroke();
     mx.strokeStyle = "rgba(60,30,8,0.35)"; mx.lineWidth = 3; mx.strokeRect(ix0 - 1.5, iy0 - 1.5, ix1 - ix0 + 3, iy1 - iy0 + 3);
     mx.restore();
   }
@@ -149,7 +148,8 @@ import "./infrared.css";
       }
     }
     if (p === "cupboard") { // shelf
-      mx.fillStyle = "#c79a68"; mx.fillRect(IN.x0, OC.y + 64, IN.x1 - IN.x0, 8);
+      woodBoard(IN.x0, OC.y + 64, IN.x1, OC.y + 74, true, "#b2814f", 5);
+      mx.fillStyle = "rgba(60,30,8,0.18)"; mx.fillRect(IN.x0, OC.y + 74, IN.x1 - IN.x0, 3); // shadow under the shelf
     }
     mx.strokeStyle = "rgba(0,0,0,0.25)"; mx.lineWidth = 1.5; mx.strokeRect(IN.x0, IN.y0, IN.x1 - IN.x0, IN.y1 - IN.y0);
   }

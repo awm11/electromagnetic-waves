@@ -21,7 +21,7 @@
       .sim { display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: transform .15s ease, box-shadow .15s ease; }
       .sim:hover, .sim:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(31,41,55,.12); }
       .sim:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-      .sim svg { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--line); }
+      .sim .thumb { display: block; width: 100%; height: auto; aspect-ratio: 2.2; object-fit: cover; border-bottom: 1px solid var(--line); }
       .simText { display: grid; gap: 6px; padding: 16px 20px 20px; }
       .simText .eyebrow { margin: 0; }
       .simText h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
@@ -42,18 +42,7 @@
 
   <main class="sims">
     <a class="card sim" href="radio-waves/">
-      <svg viewBox="0 0 560 220" role="img" aria-label="A transmitting mast sending radio waves to a house">
-        <rect width="560" height="220" fill="#eef4fb" />
-        <g fill="none" stroke="#2166d1" stroke-width="3" stroke-linecap="round">
-          <path d="M150 70 a40 40 0 0 1 0 80" opacity=".9" /><path d="M180 50 a70 70 0 0 1 0 120" opacity=".7" />
-          <path d="M210 30 a100 100 0 0 1 0 160" opacity=".5" /><path d="M240 18 a125 125 0 0 1 0 184" opacity=".3" />
-        </g>
-        <path d="M300 110 q15 -22 30 0 t30 0 t30 0 t30 0" fill="none" stroke="#2166d1" stroke-width="3" stroke-linecap="round" />
-        <g stroke="#59636f" stroke-width="2.5" fill="none"><path d="M118 190 L130 40 L142 190" /><path d="M121 150 H139 M124 110 H136 M127 75 H133" /></g>
-        <circle cx="130" cy="36" r="5" fill="#e8281e" />
-        <g><rect x="440" y="140" width="64" height="50" fill="#f5efe4" stroke="#59636f" stroke-width="2" /><path d="M432 142 L472 112 L512 142 Z" fill="#a85032" /><path d="M488 112 V70" stroke="#59636f" stroke-width="3" /><rect x="462" y="165" width="14" height="25" fill="#59636f" /></g>
-        <rect y="190" width="560" height="30" fill="#2f353b" />
-      </svg>
+      <img class="thumb" src="/thumbs/radio-waves.webp" width="1120" height="509" alt="The radio waves simulation: a transmitting mast sending waves to a house, shown as a field-strength map" />
       <div class="simText">
         <div class="eyebrow">Radio waves</div>
         <h2>Producing and receiving radio waves</h2>
@@ -63,18 +52,7 @@
     </a>
 
     <a class="card sim" href="infrared/">
-      <svg viewBox="0 0 560 220" role="img" aria-label="A pot in a hot kiln, with infrared arrows going in and out">
-        <rect width="560" height="220" fill="#8e4a31" />
-        <rect x="22" y="18" width="516" height="184" fill="#ffd9a8" />
-        <path d="M262 66 h36 q-3 14 3 20 q44 18 32 76 q-6 18 -26 22 h-54 q-20 -4 -26 -22 q-12 -58 32 -76 q6 -6 3 -20 z" fill="#c8693a" stroke="#6b3518" stroke-width="2" />
-        <g fill="none" stroke="#d0201a" stroke-width="3" stroke-linecap="round">
-          <path d="M80 60 q8 -10 16 0 t16 0 t16 0 t16 0 l14 10" /><path d="M90 160 q8 -10 16 0 t16 0 t16 0 t16 0 l14 -8" />
-          <path d="M470 50 q-8 10 -16 0 t-16 0 t-16 0 t-16 0 l-14 14" /><path d="M480 170 q-8 -10 -16 0 t-16 0 t-16 0 t-16 0 l-14 -10" />
-        </g>
-        <g fill="none" stroke="#e07b00" stroke-width="3" stroke-linecap="round">
-          <path d="M240 112 q-8 -10 -16 0 t-16 0 t-16 0 l-12 -8" /><path d="M322 120 q8 10 16 0 t16 0 t16 0 l12 8" />
-        </g>
-      </svg>
+      <img class="thumb" src="/thumbs/infrared.webp" width="1120" height="509" alt="The infrared simulation: a pot in a hot kiln with infrared arrows going in and out, beside a graph of its temperature" />
       <div class="simText">
         <div class="eyebrow">Infrared</div>
         <h2>Emitting and absorbing infrared</h2>
