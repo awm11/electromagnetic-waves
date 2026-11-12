@@ -404,7 +404,6 @@ import "./infrared.css";
     // readouts
     pill(`${sc().label}: ${Math.round(T)} °C`, IN.x0 + 10, IN.y0 + 20, "left");
     pill(`${sc().place[0].toUpperCase() + sc().place.slice(1)}: ${sc().Ts} °C`, IN.x1 - 10, IN.y0 + 20, "right", "#b45309");
-    pill("Only infrared shown · time sped up", IN.x0 + 10, IN.y1 - 20, "left", COL.muted);
     drawBars();
     drawGraph();
   }
