@@ -241,7 +241,7 @@ import "./infrared.css";
 
   // ---- Infrared arrows ----
   // Incoming arrows start at the walls and head for the object; a fraction eps are absorbed, the rest reflect.
-  // Emitted arrows leave the object's surface and travel out to the walls.
+  // Emitted arrows leave from anywhere on the object's surface and travel out to the walls.
   const arrows = []; let inAcc = 0, outAcc = 0;
   const SPEED = 150;
   // Where a line from the wall towards the object's centre first touches the object's real outline.
@@ -262,12 +262,30 @@ import "./infrared.css";
     if (uy > 0) s = Math.min(s, (IN.y1 - OC.y) / uy); if (uy < 0) s = Math.min(s, (IN.y0 - OC.y) / uy);
     return [OC.x + ux * s, OC.y + uy * s];
   }
+  function wallFrom(px, py, ux, uy) { // where a ray from (px, py) meets the inner wall
+    let s = Infinity;
+    if (ux > 0) s = Math.min(s, (IN.x1 - px) / ux); if (ux < 0) s = Math.min(s, (IN.x0 - px) / ux);
+    if (uy > 0) s = Math.min(s, (IN.y1 - py) / uy); if (uy < 0) s = Math.min(s, (IN.y0 - py) / uy);
+    return [px + ux * s, py + uy * s];
+  }
+  // A random point anywhere on the visible surface, and a direction roughly away from the object's middle.
+  function surfacePoint() {
+    for (let k = 0; k < 80; k++) {
+      const px = OC.x - 130 + Math.random() * 260, py = OC.y - 95 + Math.random() * 175;
+      if (!inObject(px, py)) continue;
+      const dx = px - OC.x, dy = py - OC.y, r = Math.hypot(dx, dy);
+      const th = (r < 12 ? Math.random() * TWO_PI : Math.atan2(dy, dx)) + (Math.random() - 0.5) * 1.6;
+      const [wx, wy] = wallFrom(px, py, Math.cos(th), Math.sin(th));
+      if (Math.hypot(wx - px, wy - py) > 60) return [px, py, wx, wy];
+    }
+    return randomEdge();
+  }
   function spawnIn() {
-    const e = randomEdge(); if (!e) return;
+    const e = surfacePoint(); if (!e) return;
     arrows.push({ kind: "in", x0: e[2], y0: e[3], x1: e[0], y1: e[1], d: 0, ph: Math.random() * TWO_PI });
   }
   function spawnOut() {
-    const e = randomEdge(); if (!e) return;
+    const e = surfacePoint(); if (!e) return;
     arrows.push({ kind: "out", x0: e[0], y0: e[1], x1: e[2], y1: e[3], d: 0, ph: Math.random() * TWO_PI });
   }
   function updateArrows(dt) {
@@ -283,7 +301,7 @@ import "./infrared.css";
         if (Math.random() < eps()) arrows[i] = { kind: "flash", x: a.x1, y: a.y1, life: 0.35 };
         else { // bounce back out, roughly away from the surface
           const th = Math.atan2(a.y1 - OC.y, a.x1 - OC.x) + (Math.random() - 0.5) * 1.2;
-          const [wx, wy] = wallPointToward(Math.cos(th), Math.sin(th));
+          const [wx, wy] = wallFrom(a.x1, a.y1, Math.cos(th), Math.sin(th));
           arrows[i] = { kind: "refl", x0: a.x1, y0: a.y1, x1: wx, y1: wy, d: 0, ph: a.ph };
         }
       } else arrows.splice(i, 1);
@@ -293,21 +311,24 @@ import "./infrared.css";
     const len = Math.hypot(a.x1 - a.x0, a.y1 - a.y0), ux = (a.x1 - a.x0) / len, uy = (a.y1 - a.y0) / len, nx = -uy, ny = ux;
     const head = Math.min(a.d, len), tail = Math.max(0, head - 46);
     if (head - tail < 4) return;
-    mx.save(); mx.globalAlpha = alpha; mx.strokeStyle = color; mx.lineWidth = 2.4; mx.lineCap = "round"; mx.lineJoin = "round";
-    mx.beginPath();
-    for (let s = tail; s <= head - 6; s += 2) {
-      const o = Math.sin((s - head) / 14 * TWO_PI + a.ph) * 4.5 * Math.min(1, (head - s) / 8);
-      const px = a.x0 + ux * s + nx * o, py = a.y0 + uy * s + ny * o;
-      s === tail ? mx.moveTo(px, py) : mx.lineTo(px, py);
-    }
-    mx.stroke();
     const hx = a.x0 + ux * head, hy = a.y0 + uy * head;
-    mx.beginPath(); mx.moveTo(hx, hy); mx.lineTo(hx - ux * 10 + nx * 5.5, hy - uy * 10 + ny * 5.5); mx.lineTo(hx - ux * 10 - nx * 5.5, hy - uy * 10 - ny * 5.5); mx.closePath();
-    mx.fillStyle = color; mx.fill(); mx.restore();
+    const wave = () => { mx.beginPath();
+      for (let s = tail; s <= head - 6; s += 2) {
+        const o = Math.sin((s - head) / 14 * TWO_PI + a.ph) * 4.5 * Math.min(1, (head - s) / 8);
+        const px = a.x0 + ux * s + nx * o, py = a.y0 + uy * s + ny * o;
+        s === tail ? mx.moveTo(px, py) : mx.lineTo(px, py);
+      } };
+    const tri = () => { mx.beginPath(); mx.moveTo(hx, hy); mx.lineTo(hx - ux * 10 + nx * 5.5, hy - uy * 10 + ny * 5.5); mx.lineTo(hx - ux * 10 - nx * 5.5, hy - uy * 10 - ny * 5.5); mx.closePath(); };
+    mx.save(); mx.globalAlpha = alpha; mx.lineCap = "round"; mx.lineJoin = "round";
+    // a pale outline so the arrow stands out on a dark, yellow or silver object
+    mx.strokeStyle = "rgba(255,255,255,0.75)"; mx.lineWidth = 5.4; wave(); mx.stroke(); tri(); mx.lineWidth = 3; mx.stroke();
+    mx.strokeStyle = color; mx.lineWidth = 2.4; wave(); mx.stroke();
+    tri(); mx.fillStyle = color; mx.fill(); mx.restore();
   }
   function drawArrows(front) {
+    if (!front) return; // every arrow starts or ends on the object's face, so all are drawn over it
     for (const a of arrows) {
-      if (a.kind === "flash") { if (!front) continue; mx.fillStyle = `rgba(208,32,26,${a.life / 0.35 * 0.6})`; mx.beginPath(); mx.arc(a.x, a.y, 7 * (1.3 - a.life / 0.35), 0, TWO_PI); mx.fill(); continue; }
+      if (a.kind === "flash") { mx.fillStyle = `rgba(208,32,26,${a.life / 0.35 * 0.6})`; mx.beginPath(); mx.arc(a.x, a.y, 7 * (1.3 - a.life / 0.35), 0, TWO_PI); mx.fill(); continue; }
       const len = Math.hypot(a.x1 - a.x0, a.y1 - a.y0), fade = a.kind === "in" ? 1 : Math.max(0, Math.min(1, (len - a.d) / 40 + 0.15));
       if (a.kind === "in") squiggle(a, COL.inArrow, 1);
       else if (a.kind === "out") squiggle(a, COL.outArrow, fade);
