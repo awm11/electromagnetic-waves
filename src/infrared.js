@@ -279,9 +279,37 @@ import "./infrared.css";
     }
     return randomEdge();
   }
+  // The outward normal of the outline at an edge point: the average direction of nearby points that are outside.
+  function edgeNormal(px, py) {
+    let nx = 0, ny = 0;
+    for (let k = 0; k < 24; k++) { const a = k / 24 * TWO_PI, c = Math.cos(a), s = Math.sin(a); if (!inObject(px + 6 * c, py + 6 * s)) { nx += c; ny += s; } }
+    const L = Math.hypot(nx, ny); return L ? [nx / L, ny / L] : null;
+  }
+  function clearPath(px, py, qx, qy) { // true if the straight path from just outside (px, py) to (qx, qy) misses the object
+    const L = Math.hypot(qx - px, qy - py);
+    for (let s = 5; s < L; s += 3) if (inObject(px + (qx - px) * s / L, py + (qy - py) * s / L)) return false;
+    return true;
+  }
+  // Absorbed infrared can land anywhere on the surface. Reflected infrared hits the outline, where the surface
+  // direction is clear, and obeys the law of reflection: angle of reflection = angle of incidence.
   function spawnIn() {
-    const e = surfacePoint(); if (!e) return;
-    arrows.push({ kind: "in", x0: e[2], y0: e[3], x1: e[0], y1: e[1], d: 0, ph: Math.random() * TWO_PI });
+    const ph = Math.random() * TWO_PI;
+    if (Math.random() < eps()) {
+      const e = surfacePoint(); if (!e) return;
+      arrows.push({ kind: "in", fate: "abs", x0: e[2], y0: e[3], x1: e[0], y1: e[1], d: 0, ph });
+      return;
+    }
+    for (let k = 0; k < 20; k++) {
+      const e = randomEdge(); if (!e) continue;
+      const px = e[0], py = e[1], n = edgeNormal(px, py); if (!n) continue;
+      const phi = Math.atan2(n[1], n[0]) + (Math.random() - 0.5) * 2.2; // where it comes from: within about 63° of the normal
+      const ux = Math.cos(phi), uy = Math.sin(phi), [sx, sy] = wallFrom(px, py, ux, uy);
+      const dx = -ux, dy = -uy, dn = dx * n[0] + dy * n[1];            // travel direction, and its part along the normal
+      const rx = dx - 2 * dn * n[0], ry = dy - 2 * dn * n[1], [ex, ey] = wallFrom(px, py, rx, ry);
+      if (Math.hypot(sx - px, sy - py) < 60 || !clearPath(px, py, sx, sy) || !clearPath(px, py, ex, ey)) continue;
+      arrows.push({ kind: "in", fate: "refl", x0: sx, y0: sy, x1: px, y1: py, rx: ex, ry: ey, d: 0, ph });
+      return;
+    }
   }
   function spawnOut() {
     const e = surfacePoint(); if (!e) return;
@@ -297,12 +325,8 @@ import "./infrared.css";
       if (a.kind === "flash") { if ((a.life -= dt) <= 0) arrows.splice(i, 1); continue; }
       if (a.d < len) continue;
       if (a.kind === "in") {
-        if (Math.random() < eps()) arrows[i] = { kind: "flash", x: a.x1, y: a.y1, life: 0.35 };
-        else { // reflected back out into the room
-          const th = Math.random() * TWO_PI;
-          const [wx, wy] = wallFrom(a.x1, a.y1, Math.cos(th), Math.sin(th));
-          arrows[i] = { kind: "refl", x0: a.x1, y0: a.y1, x1: wx, y1: wy, d: 0, ph: a.ph };
-        }
+        if (a.fate === "abs") arrows[i] = { kind: "flash", x: a.x1, y: a.y1, life: 0.35 };
+        else arrows[i] = { kind: "refl", x0: a.x1, y0: a.y1, x1: a.rx, y1: a.ry, d: 0, ph: a.ph };
       } else arrows.splice(i, 1);
     }
   }
