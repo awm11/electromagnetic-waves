@@ -33,10 +33,19 @@ import "./infrared.css";
   const ref4 = () => (Math.max(sc().T0, sc().Ts) + K0) ** 4;
   // Bars and arrows share ONE scale across all scenarios, so a kiln clearly gives more than a cupboard, and a
   // cupboard more than a freezer. Radiation goes as T⁴ (a 1000 °C kiln gives ~350× a 20 °C cupboard), so the
-  // scale is compressed (logarithmic) to keep every scenario visible. Order and equality are kept: the same
-  // temperature always gives the same level, and the surface multiplies both emission and absorption.
-  const LMIN = 0.2, LMAX = ((1000 + K0) / 293.15) ** 4;
-  const level = Tc => Math.max(0, Math.min(1, Math.log(((Tc + K0) / 293.15) ** 4 / LMIN) / Math.log(LMAX / LMIN)));
+  // scale is not to scale: it is pinned so the freezer sits low, the cupboard in the middle and the kiln at the top,
+  // rising smoothly in between. Order and equality are kept: the same temperature always gives the same level,
+  // and the surface multiplies both emission and absorption.
+  const LEVELS = [[-60, 0.05], [-18, 0.32], [20, 0.55], [1000, 1]]; // °C → bar level for a perfect absorber
+  const level = Tc => {
+    const lp = c => Math.log(c + K0); // interpolate in log T, i.e. in log of the radiated power
+    if (Tc <= LEVELS[0][0]) return LEVELS[0][1];
+    for (let i = 1; i < LEVELS.length; i++) {
+      const [c0, l0] = LEVELS[i - 1], [c1, l1] = LEVELS[i];
+      if (Tc <= c1) return l0 + (l1 - l0) * (lp(Tc) - lp(c0)) / (lp(c1) - lp(c0));
+    }
+    return 1;
+  };
   const pAbs = () => eps() * level(sc().Ts);                // infrared absorbed from the surroundings
   const pEmit = () => eps() * level(T);                     // infrared emitted by the object
 
@@ -322,7 +331,7 @@ import "./infrared.css";
   }
   function updateArrows(dt) {
     // arriving arrows: a fraction eps are absorbed (spawnIn), so absorbed = emitted whenever T = Ts
-    inAcc += RATE * Math.sqrt(level(sc().Ts)) * dt; outAcc += RATE * eps() * Math.sqrt(level(T)) * dt;
+    inAcc += RATE * level(sc().Ts) * dt; outAcc += RATE * eps() * level(T) * dt;
     while (inAcc >= 1) { spawnIn(); inAcc--; }
     while (outAcc >= 1) { spawnOut(); outAcc--; }
     for (let i = arrows.length - 1; i >= 0; i--) {
