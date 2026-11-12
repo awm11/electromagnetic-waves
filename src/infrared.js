@@ -282,12 +282,27 @@ import "./infrared.css";
     if (uy > 0) s = Math.min(s, (IN.y1 - py) / uy); if (uy < 0) s = Math.min(s, (IN.y0 - py) / uy);
     return [px + ux * s, py + uy * s];
   }
-  // A random point anywhere on the visible surface, and a random direction.
+  // The middle of the object's own shape (for the banana this is in its body, not above it). Cached per scenario.
+  const mids = {};
+  function objMid() {
+    if (mids[scene]) return mids[scene];
+    const pts = [];
+    for (let px = OC.x - 140; px <= OC.x + 140; px += 4) for (let py = OC.y - 100; py <= OC.y + 90; py += 4)
+      if (inObject(px, py)) pts.push([px, py]);
+    if (!pts.length) return (mids[scene] = [OC.x, OC.y, 1, 1]);
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    const wx = Math.sqrt(pts.reduce((a, p) => a + (p[0] - cx) ** 2, 0) / pts.length), wy = Math.sqrt(pts.reduce((a, p) => a + (p[1] - cy) ** 2, 0) / pts.length);
+    return (mids[scene] = [cx, cy, wx, wy]); // middle, and how far the shape spreads in x and y
+  }
+  // A random point anywhere on the visible surface, and a direction roughly outwards from the object's middle.
   function surfacePoint() {
+    const [mxx, myy, spx, spy] = objMid();
     for (let k = 0; k < 80; k++) {
       const px = OC.x - 130 + Math.random() * 260, py = OC.y - 95 + Math.random() * 175;
       if (!inObject(px, py)) continue;
-      const th = Math.random() * TWO_PI; // a surface radiates in every direction
+      // "outwards" relative to the shape: on a long thin banana, the top half sends infrared upwards
+      const dx = (px - mxx) / spx, dy = (py - myy) / spy, r = Math.hypot(dx, dy);
+      const th = (r < 0.2 ? Math.random() * TWO_PI : Math.atan2(dy, dx)) + (Math.random() - 0.5) * 1.6;
       const [wx, wy] = wallFrom(px, py, Math.cos(th), Math.sin(th));
       if (Math.hypot(wx - px, wy - py) > 60) return [px, py, wx, wy];
     }
