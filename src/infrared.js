@@ -319,25 +319,50 @@ import "./infrared.css";
     for (let s = 5; s < L; s += 3) if (inObject(px + (qx - px) * s / L, py + (qy - py) * s / L)) return false;
     return true;
   }
-  // Absorbed infrared can land anywhere on the surface. Reflected infrared hits the outline, where the surface
-  // direction is clear, and obeys the law of reflection: angle of reflection = angle of incidence.
-  function spawnIn() {
-    const ph = Math.random() * TWO_PI;
-    if (Math.random() < eps()) {
-      const e = surfacePoint(); if (!e) return;
-      arrows.push({ kind: "in", fate: "abs", x0: e[2], y0: e[3], x1: e[0], y1: e[1], d: 0, ph });
-      return;
+  // Points all round the outline (including the inside curve of the banana), each with its outward normal. Cached per scenario.
+  const rims = {};
+  function rimPoints() {
+    if (rims[scene]) return rims[scene];
+    const out = [], g = 3;
+    for (let px = OC.x - 140; px <= OC.x + 140; px += g) for (let py = OC.y - 100; py <= OC.y + 90; py += g) {
+      if (!inObject(px, py)) continue;
+      if (inObject(px + g, py) && inObject(px - g, py) && inObject(px, py + g) && inObject(px, py - g)) continue;
+      const n = edgeNormal(px, py); if (n) out.push([px, py, n[0], n[1]]);
     }
-    for (let k = 0; k < 20; k++) {
-      const e = randomEdge(); if (!e) continue;
-      const px = e[0], py = e[1], n = edgeNormal(px, py); if (!n) continue;
-      const phi = Math.atan2(n[1], n[0]) + (Math.random() - 0.5) * 2.2; // where it comes from: within about 63° of the normal
-      const ux = Math.cos(phi), uy = Math.sin(phi), [sx, sy] = wallFrom(px, py, ux, uy);
-      const dx = -ux, dy = -uy, dn = dx * n[0] + dy * n[1];            // travel direction, and its part along the normal
-      const rx = dx - 2 * dn * n[0], ry = dy - 2 * dn * n[1], [ex, ey] = wallFrom(px, py, rx, ry);
-      if (Math.hypot(sx - px, sy - py) < 60 || !clearPath(px, py, sx, sy) || !clearPath(px, py, ex, ey)) continue;
-      arrows.push({ kind: "in", fate: "refl", x0: sx, y0: sy, x1: px, y1: py, rx: ex, ry: ey, d: 0, ph });
-      return;
+    return (rims[scene] = out);
+  }
+  // Incoming infrared comes evenly from every part of the walls.
+  function wallStart() {
+    const w = IN.x1 - IN.x0, h = IN.y1 - IN.y0, u = Math.random() * 2 * (w + h);
+    if (u < w) return [IN.x0 + u, IN.y0];
+    if (u < 2 * w) return [IN.x0 + u - w, IN.y1];
+    if (u < 2 * w + h) return [IN.x0, IN.y0 + u - 2 * w];
+    return [IN.x1, IN.y0 + u - 2 * w - h];
+  }
+  // Absorbed infrared can land anywhere on the surface (on the side facing where it came from). Reflected infrared
+  // hits the outline, where the surface direction is clear, and obeys the law of reflection: angle of reflection =
+  // angle of incidence.
+  function spawnIn() {
+    const ph = Math.random() * TWO_PI, COS_MAX = Math.cos(1.1); // incoming within about 63° of the normal
+    for (let k = 0; k < 30; k++) {
+      const [sx, sy] = wallStart();
+      if (Math.random() < eps()) {
+        let best = null, bd = Infinity;
+        for (let j = 0; j < 6; j++) { const e = surfacePoint(); if (!e) continue; const d = Math.hypot(e[0] - sx, e[1] - sy); if (d < bd) { bd = d; best = e; } }
+        if (!best) continue;
+        arrows.push({ kind: "in", fate: "abs", x0: sx, y0: sy, x1: best[0], y1: best[1], d: 0, ph });
+        return;
+      }
+      const rim = rimPoints();
+      for (let j = 0; j < 40; j++) {
+        const [px, py, nx, ny] = rim[(Math.random() * rim.length) | 0];
+        const L = Math.hypot(sx - px, sy - py), ux = (sx - px) / L, uy = (sy - py) / L; // towards the source
+        if (ux * nx + uy * ny < COS_MAX || L < 60 || !clearPath(px, py, sx, sy)) continue;
+        const dn = -ux * nx - uy * ny, rx = -ux - 2 * dn * nx, ry = -uy - 2 * dn * ny, [ex, ey] = wallFrom(px, py, rx, ry);
+        if (!clearPath(px, py, ex, ey)) continue;
+        arrows.push({ kind: "in", fate: "refl", x0: sx, y0: sy, x1: px, y1: py, rx: ex, ry: ey, d: 0, ph });
+        return;
+      }
     }
   }
   function spawnOut() {
