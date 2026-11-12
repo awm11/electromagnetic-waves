@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Emitting and Absorbing Infrared</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+  </head>
+  <body>
+<div class="shell has-brand">
+  <a class="awm-logo-link page-logo" href="/" target="_blank" rel="noopener noreferrer" aria-label="More simulations at alexmoorephysics.com" title="More simulations"><img src="/favicon.svg" alt="" /></a>
+  <header class="heading">
+    <div class="eyebrow">EM spectrum • Infrared</div>
+    <h1>Emitting and absorbing infrared</h1>
+    <p class="intro" id="intro">Every object emits and absorbs infrared radiation all the time. Whether it warms up or cools down depends on which is bigger: what it emits, or what it absorbs from its&nbsp;surroundings.</p>
+  </header>
+
+  <section class="card">
+    <div class="viewBar" role="group" aria-label="Scenario">
+      <span class="barLabel">Scenario</span>
+      <button class="seg" data-scene="banana">Banana in a cupboard</button>
+      <button class="seg on" data-scene="pottery">Pottery in a kiln</button>
+      <button class="seg" data-scene="bagel">Bagel in a freezer</button>
+    </div>
+
+    <div class="stage">
+      <canvas id="main" aria-label="An object in its surroundings, with infrared arrows going in and out, and a graph of its temperature"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="btnRow" role="group" aria-label="Surface">
+        <span class="barLabel">Surface</span>
+        <button class="seg on" data-surface="black">Matt black</button>
+        <button class="seg" data-surface="grey">Grey</button>
+        <button class="seg" data-surface="silver">Shiny silver</button>
+        <button class="seg restartBtn" id="restartBtn">Restart</button>
+      </div>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText"></span></div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="lessonBox">
+      <h2>1. Everything emits infrared</h2>
+      <p>All objects emit and absorb <b>infrared radiation</b> all the time. The hotter an object is, the more infrared radiation it emits in a given time.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>2. Warming up or cooling down</h2>
+      <p>An object <b>colder</b> than its surroundings absorbs more radiation than it emits, so its temperature increases. An object <b>hotter</b> than its surroundings emits more than it absorbs, so its temperature decreases. At the <b>same temperature</b>, it absorbs the same amount as it emits, so its temperature stays the same.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>3. The surface matters</h2>
+      <p><b>Dark, matt</b> surfaces are good absorbers and good emitters of infrared. <b>Light, shiny</b> surfaces are poor absorbers and poor emitters, because they reflect most of the infrared that hits them. A shiny object takes longer to reach the temperature of its surroundings, but it ends up at the same temperature.</p>
+    </div>
+  </section>
+  <div class="didYouKnow"><b>Did you know?</b> A real bagel in a freezer also cools by conduction and convection, through the air and the shelf. This simulation shows only the energy transferred by infrared radiation.</div>
+
+  <footer class="awm-footer">
+    <a href="/" target="_blank" rel="noopener noreferrer">More simulations</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://www.buymeacoffee.com/awmPhysics" target="_blank" rel="noopener noreferrer">Support the project ☕</a>
+    <span aria-hidden="true">·</span>
+    <a href="mailto:hello@alexmoorephysics.com">hello@alexmoorephysics.com</a>
+  </footer>
+</div>
+    <script type="module" src="/src/infrared.js"></script>
+  </body>
+</html>

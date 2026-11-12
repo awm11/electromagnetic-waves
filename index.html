@@ -3,143 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>Radio Transmission</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Electromagnetic Waves</title>
+    <script>
+      // Links to the radio waves app from before it moved (e.g. .../#encoding) still land on the right mode.
+      (function () {
+        var modes = ["field-map", "inside-the-wave", "over-the-hill", "encoding", "sending-data"];
+        var h = location.hash.slice(1);
+        if (modes.indexOf(h) >= 0) location.replace("radio-waves/#" + h);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <style>
+      .sims { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .sim { display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: transform .15s ease, box-shadow .15s ease; }
+      .sim:hover, .sim:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(31,41,55,.12); }
+      .sim:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+      .sim svg { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--line); }
+      .simText { display: grid; gap: 6px; padding: 16px 20px 20px; }
+      .simText .eyebrow { margin: 0; }
+      .simText h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+      .simText p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+      .simText .go { margin-top: 6px; color: var(--blue); font-weight: 800; font-size: 14px; }
+      @media (max-width: 760px) { .sims { grid-template-columns: 1fr; } }
+      @media (prefers-reduced-motion: reduce) { .sim { transition: none; } }
+    </style>
   </head>
   <body>
 <div class="shell has-brand">
   <a class="awm-logo-link page-logo" href="/" target="_blank" rel="noopener noreferrer" aria-label="More simulations at alexmoorephysics.com" title="More simulations"><img src="/favicon.svg" alt="" /></a>
   <header class="heading">
-    <div class="eyebrow">EM spectrum • Radio waves</div>
-    <h1>Producing and receiving radio waves</h1>
-    <p class="intro" id="intro">An alternating current in the transmitting mast makes a wave in the electric and magnetic fields. The wave travels outwards, and when it reaches another aerial it makes an alternating current there too.</p>
+    <div class="eyebrow">EM spectrum</div>
+    <h1>Electromagnetic waves</h1>
+    <p class="intro">Interactive GCSE physics simulations. Choose one to start.</p>
   </header>
 
-  <section class="card">
-    <div class="viewBar" role="group" aria-label="Mode">
-      <span class="barLabel">Mode</span>
-      <button class="seg on" id="vFieldBtn" data-view="field-map">Mast to house</button>
-      <button class="seg" id="vWaveBtn" data-view="inside-the-wave">Inside the wave</button>
-      <button class="seg" id="vHillBtn" data-view="over-the-hill">Over the hill</button>
-      <button class="seg" id="vEncBtn" data-view="encoding">Encoding</button>
-      <button class="seg" id="vDataBtn" data-view="sending-data">Sending data</button>
-    </div>
-
-    <div class="stage">
-      <canvas id="main" aria-label="Animated radio transmission scene"></canvas>
-      <canvas id="plots" aria-label="Live current graphs"></canvas>
-    </div>
-
-    <div class="controls">
-      <div class="leftCtl">
-        <div class="btnRow" id="sigBar" role="group" aria-label="Signal">
-          <span class="barLabel">Signal</span>
-          <button class="seg on" id="sigSteady" data-mode="steady">Steady frequency</button>
-          <button class="seg" id="sigChanging" data-mode="changing">Changing</button>
-        </div>
-        <div id="dataBar" class="dataBar" hidden>
-          <div>
-          <div class="btnRow" role="group" aria-label="Carrier frequency">
-            <span class="barLabel">Carrier frequency</span>
-            <button class="seg" data-dfreq="low">Low</button>
-            <button class="seg" data-dfreq="medium">Medium</button>
-            <button class="seg on" data-dfreq="high">High</button>
-          </div>
-          <div class="btnRow" role="group" aria-label="Sending speed" style="margin-top:8px">
-            <span class="barLabel">Sending speed</span>
-            <button class="seg on" data-dspeed="normal">Normal</button>
-            <button class="seg" data-dspeed="slow">Slow</button>
-          </div>
-          </div>
-          <button class="seg sendBtn" id="sosBtn">Send SOS</button>
-        </div>
-        <div class="btnRow" id="encBar" role="group" aria-label="Encoding" hidden>
-          <span class="barLabel">Encoding</span>
-          <button class="seg on" id="encAM" data-enc="am">AM</button>
-          <button class="seg" id="encFM" data-enc="fm">FM</button>
-        </div>
-        <div id="hillBar" hidden>
-          <div class="btnRow" role="group" aria-label="Wavelength">
-            <span class="barLabel">Wavelength</span>
-            <button class="seg on" id="wLong" data-wave="long">Long wave</button>
-            <button class="seg" id="wShort" data-wave="short">Shorter wave</button>
-          </div>
-          <div class="subStatus"><span class="dot" id="hillDot"></span><span id="hillStatus">Wavelength about the size of the hill</span></div>
-        </div>
+  <main class="sims">
+    <a class="card sim" href="radio-waves/">
+      <svg viewBox="0 0 560 220" role="img" aria-label="A transmitting mast sending radio waves to a house">
+        <rect width="560" height="220" fill="#eef4fb" />
+        <g fill="none" stroke="#2166d1" stroke-width="3" stroke-linecap="round">
+          <path d="M150 70 a40 40 0 0 1 0 80" opacity=".9" /><path d="M180 50 a70 70 0 0 1 0 120" opacity=".7" />
+          <path d="M210 30 a100 100 0 0 1 0 160" opacity=".5" /><path d="M240 18 a125 125 0 0 1 0 184" opacity=".3" />
+        </g>
+        <path d="M300 110 q15 -22 30 0 t30 0 t30 0 t30 0" fill="none" stroke="#2166d1" stroke-width="3" stroke-linecap="round" />
+        <g stroke="#59636f" stroke-width="2.5" fill="none"><path d="M118 190 L130 40 L142 190" /><path d="M121 150 H139 M124 110 H136 M127 75 H133" /></g>
+        <circle cx="130" cy="36" r="5" fill="#e8281e" />
+        <g><rect x="440" y="140" width="64" height="50" fill="#f5efe4" stroke="#59636f" stroke-width="2" /><path d="M432 142 L472 112 L512 142 Z" fill="#a85032" /><path d="M488 112 V70" stroke="#59636f" stroke-width="3" /><rect x="462" y="165" width="14" height="25" fill="#59636f" /></g>
+        <rect y="190" width="560" height="30" fill="#2f353b" />
+      </svg>
+      <div class="simText">
+        <div class="eyebrow">Radio waves</div>
+        <h2>Producing and receiving radio waves</h2>
+        <p>How an alternating current makes radio waves, how they travel and diffract over hills, and how they carry sound and data.</p>
+        <span class="go">Open simulation →</span>
       </div>
-      <div class="toggles">
-        <button class="switchBtn" id="wireBtn" aria-pressed="true" hidden><span class="toggle green on" id="wireTog"><span class="knob"></span></span>Show wire</button>
-        <button class="switchBtn" id="hillBtn" aria-pressed="true" hidden><span class="toggle green on" id="hillTog"><span class="knob"></span></span>Hill in the way</button>
-        <button class="switchBtn" id="slowBtn" aria-pressed="false"><span class="toggle" id="slowTog"><span class="knob"></span></span>Slow motion</button>
-        <button class="switchBtn" id="onBtn" aria-pressed="true"><span class="toggle green on" id="onTog"><span class="knob"></span></span>Transmitter on</button>
+    </a>
+
+    <a class="card sim" href="infrared/">
+      <svg viewBox="0 0 560 220" role="img" aria-label="A pot in a hot kiln, with infrared arrows going in and out">
+        <rect width="560" height="220" fill="#8e4a31" />
+        <rect x="22" y="18" width="516" height="184" fill="#ffd9a8" />
+        <path d="M262 66 h36 q-3 14 3 20 q44 18 32 76 q-6 18 -26 22 h-54 q-20 -4 -26 -22 q-12 -58 32 -76 q6 -6 3 -20 z" fill="#c8693a" stroke="#6b3518" stroke-width="2" />
+        <g fill="none" stroke="#d0201a" stroke-width="3" stroke-linecap="round">
+          <path d="M80 60 q8 -10 16 0 t16 0 t16 0 t16 0 l14 10" /><path d="M90 160 q8 -10 16 0 t16 0 t16 0 t16 0 l14 -8" />
+          <path d="M470 50 q-8 10 -16 0 t-16 0 t-16 0 t-16 0 l-14 14" /><path d="M480 170 q-8 -10 -16 0 t-16 0 t-16 0 t-16 0 l-14 -10" />
+        </g>
+        <g fill="none" stroke="#e07b00" stroke-width="3" stroke-linecap="round">
+          <path d="M240 112 q-8 -10 -16 0 t-16 0 t-16 0 l-12 -8" /><path d="M322 120 q8 10 16 0 t16 0 t16 0 l12 8" />
+        </g>
+      </svg>
+      <div class="simText">
+        <div class="eyebrow">Infrared</div>
+        <h2>Emitting and absorbing infrared</h2>
+        <p>Why objects warm up or cool down to the temperature of their surroundings, and how the surface changes how quickly that happens.</p>
+        <span class="go">Open simulation →</span>
       </div>
-      <div class="status" id="statusBox"><span class="dot" id="dot"></span><span id="statusText">100 kHz • lower frequency</span></div>
-    </div>
-  </section>
+    </a>
+  </main>
 
-  <section class="lesson" id="lessonMain">
-    <div class="lessonBox">
-      <h2>1. The alternating current</h2>
-      <p>Radio waves are produced by oscillations in electrical circuits. The AC signal makes the electrons in the mast oscillate up and down, so the current changes direction every half cycle. The electrons only oscillate back and forth; they never leave the metal. Right now the frequency is <span id="lessonF" class="lo">100,000 Hz (100 kHz): 100,000 complete cycles every second</span>.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>2. The wave travels</h2>
-      <p>The oscillating current produces oscillating electric (<b>E</b>) and magnetic (<b>B</b>) fields. Radio waves are <b>transverse</b> electromagnetic waves: the fields oscillate at right angles to each other and to the direction the wave travels. They travel at the speed of light (3&nbsp;×&nbsp;10<sup>8</sup>&nbsp;m/s) and transfer energy from the transmitter to the receiver. Since wave speed = frequency × wavelength, a higher frequency gives a shorter wavelength.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>3. Receiving the wave</h2>
-      <p>When radio waves are absorbed by the receiving aerial, the oscillating electric field makes the electrons in the metal oscillate. This <b>induces</b> an alternating current with the <b>same frequency</b> as the radio wave, but much smaller. The further the receiver is from the transmitter, the weaker the signal.</p>
-    </div>
-  </section>
-
-  <section class="lesson" id="lessonEnc" hidden>
-    <div class="lessonBox">
-      <h2>1. The carrier wave</h2>
-      <p>A microphone turns sound into an electrical signal. A radio wave with a constant amplitude and frequency carries no information, because every cycle is the same: this is the <b>carrier wave</b>. To send the signal, the transmitter changes the carrier wave to match it. This is called <b>modulation</b>.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>2. AM and FM</h2>
-      <p>In <b>amplitude modulation</b> (AM), the amplitude of the carrier wave is varied to match the signal, while its frequency stays constant. In <b>frequency modulation</b> (FM), the amplitude stays constant and the frequency is varied to match the signal.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>3. Decoding</h2>
-      <p>The radio wave is absorbed by the receiving aerial and induces a small alternating current that carries the same variations. The decoder (<b>demodulator</b>) removes the carrier wave and recovers the original signal, which a loudspeaker turns back into sound. Radio waves travel at the speed of light, so the delay is far too short to hear.</p>
-    </div>
-  </section>
-  <section class="lesson" id="lessonData" hidden>
-    <div class="lessonBox">
-      <h2>1. A digital signal</h2>
-      <p>Information can be sent as a <b>digital signal</b>: a pattern of 1s and 0s. Here the carrier wave is switched on for a 1 and off for a 0. Morse code works the same way, using short pulses (dots) and long pulses (dashes). SOS is three dots, three dashes, three dots.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>2. Noise</h2>
-      <p>Every receiver also picks up random <b>noise</b>. To tell whether the wave is there, the decoder has to look at several complete cycles of the wave. If a pulse lasts less than a few cycles, the decoder cannot tell a 1 from a 0, and short pulses blur together.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>3. Higher frequency, more data</h2>
-      <p>A higher-frequency wave fits more cycles into each pulse, so the pulses can be shorter and still be decoded. Shorter pulses mean more 1s and 0s every second: a higher <b>data rate</b>. This is why higher-frequency waves can carry more information. Try it: at a lower frequency, the message only gets through if it is sent more slowly, at a lower data rate.</p>
-    </div>
-  </section>
-  <div class="didYouKnow" id="dykData" hidden><b>Did you know?</b> Wi-Fi uses microwaves with a frequency of about 2.4 or 5 billion hertz (GHz), so each pulse can be extremely short. That is how it can send hundreds of millions of 1s and 0s every second.</div>
-  <div class="didYouKnow" id="dykEnc" hidden><b>Did you know?</b> In real life broadcasting the carrier wave has a frequency 100s or 1000s of times greater than the signal. AM stations broadcast at about 0.5 to 1.6&nbsp;MHz and FM stations at about 100&nbsp;MHz, while the sound signal changes up to 20,000 times a second (20&nbsp;kHz).</div>
-
-  <section class="lesson" id="lessonHill" hidden>
-    <div class="lessonBox">
-      <h2>1. Long and short wavelengths</h2>
-      <p>Long-wave radio has a wavelength of about 1.5&nbsp;km. FM radio and TV use much shorter wavelengths, of a few metres or less. All of them travel at the same speed, the speed of light, so the shorter the wavelength, the higher the frequency. The wavelengths shown here are not to scale.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>2. Bending round the hill</h2>
-      <p>When a wave passes the edge of an obstacle, it spreads out. This is called <b>diffraction</b>. Diffraction is greatest when the wavelength is similar in size to the obstacle, so long-wave radio diffracts over the hill and reaches the valley behind it.</p>
-    </div>
-    <div class="lessonBox">
-      <h2>3. In the shadow</h2>
-      <p>Shorter wavelengths diffract very little around a large hill, so they leave a shadow behind it where the signal is very weak. FM and TV need a clear <b>line of sight</b> between transmitter and receiver, so their transmitters are built on high ground. Long-wave signals can be received far away, even behind hills.</p>
-    </div>
-  </section>
-  <p class="intro" id="footMain" style="margin-top:14px">Slowed down 100,000 times: 100 kHz is shown as one cycle per second. FM radio stations broadcast at about 100 MHz, a thousand times higher still.</p>
   <footer class="awm-footer">
     <a href="/" target="_blank" rel="noopener noreferrer">More simulations</a>
     <span aria-hidden="true">·</span>
@@ -148,6 +92,5 @@
     <a href="mailto:hello@alexmoorephysics.com">hello@alexmoorephysics.com</a>
   </footer>
 </div>
-    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
