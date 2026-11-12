@@ -268,13 +268,12 @@ import "./infrared.css";
     if (uy > 0) s = Math.min(s, (IN.y1 - py) / uy); if (uy < 0) s = Math.min(s, (IN.y0 - py) / uy);
     return [px + ux * s, py + uy * s];
   }
-  // A random point anywhere on the visible surface, and a direction roughly away from the object's middle.
+  // A random point anywhere on the visible surface, and a random direction.
   function surfacePoint() {
     for (let k = 0; k < 80; k++) {
       const px = OC.x - 130 + Math.random() * 260, py = OC.y - 95 + Math.random() * 175;
       if (!inObject(px, py)) continue;
-      const dx = px - OC.x, dy = py - OC.y, r = Math.hypot(dx, dy);
-      const th = (r < 12 ? Math.random() * TWO_PI : Math.atan2(dy, dx)) + (Math.random() - 0.5) * 1.6;
+      const th = Math.random() * TWO_PI; // a surface radiates in every direction
       const [wx, wy] = wallFrom(px, py, Math.cos(th), Math.sin(th));
       if (Math.hypot(wx - px, wy - py) > 60) return [px, py, wx, wy];
     }
@@ -299,8 +298,8 @@ import "./infrared.css";
       if (a.d < len) continue;
       if (a.kind === "in") {
         if (Math.random() < eps()) arrows[i] = { kind: "flash", x: a.x1, y: a.y1, life: 0.35 };
-        else { // bounce back out, roughly away from the surface
-          const th = Math.atan2(a.y1 - OC.y, a.x1 - OC.x) + (Math.random() - 0.5) * 1.2;
+        else { // reflected back out into the room
+          const th = Math.random() * TWO_PI;
           const [wx, wy] = wallFrom(a.x1, a.y1, Math.cos(th), Math.sin(th));
           arrows[i] = { kind: "refl", x0: a.x1, y0: a.y1, x1: wx, y1: wy, d: 0, ph: a.ph };
         }
