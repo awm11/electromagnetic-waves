@@ -25,6 +25,9 @@ body {
 }
 .shell { max-width: 1160px; margin: 0 auto; }
 .heading { margin-bottom: 18px; }
+.backLink { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 5px 12px; border: 1px solid var(--line-strong); border-radius: 99px; background: #fff; color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: none; }
+.backLink:hover, .backLink:focus-visible { border-color: var(--blue); color: var(--blue); }
+.backLink:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #3867a8; margin-bottom: 4px; }
 h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spacing: -.04em; text-wrap: balance; }
 .intro { max-width: 780px; margin: 8px 0 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
