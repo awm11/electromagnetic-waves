@@ -389,18 +389,21 @@ import "./infrared.css";
     const len = Math.hypot(a.x1 - a.x0, a.y1 - a.y0), ux = (a.x1 - a.x0) / len, uy = (a.y1 - a.y0) / len, nx = -uy, ny = ux;
     const head = Math.min(a.d, len), tail = Math.max(0, head - 46);
     if (head - tail < 4) return;
-    const hx = a.x0 + ux * head, hy = a.y0 + uy * head;
+    const hx = a.x0 + ux * head, hy = a.y0 + uy * head, HL = 10, HW = 5.5, base = head - HL;
+    // The wave calms to a straight line just before the head, and ends exactly at the middle of the head's base.
     const wave = () => { mx.beginPath();
-      for (let s = tail; s <= head - 6; s += 2) {
-        const o = Math.sin((s - head) / 14 * TWO_PI + a.ph) * 4.5 * Math.min(1, (head - s) / 8);
+      const end = Math.max(tail, base);
+      for (let s = tail; s < end; s += 1.5) {
+        const o = Math.sin((s - head) / 14 * TWO_PI + a.ph) * 4.5 * Math.min(1, Math.max(0, base - 3 - s) / 9);
         const px = a.x0 + ux * s + nx * o, py = a.y0 + uy * s + ny * o;
         s === tail ? mx.moveTo(px, py) : mx.lineTo(px, py);
-      } };
-    const tri = () => { mx.beginPath(); mx.moveTo(hx, hy); mx.lineTo(hx - ux * 10 + nx * 5.5, hy - uy * 10 + ny * 5.5); mx.lineTo(hx - ux * 10 - nx * 5.5, hy - uy * 10 - ny * 5.5); mx.closePath(); };
-    mx.save(); mx.globalAlpha = alpha; mx.lineCap = "round"; mx.lineJoin = "round";
+      }
+      mx.lineTo(a.x0 + ux * end, a.y0 + uy * end); };
+    const tri = () => { mx.beginPath(); mx.moveTo(hx, hy); mx.lineTo(hx - ux * HL + nx * HW, hy - uy * HL + ny * HW); mx.lineTo(hx - ux * HL - nx * HW, hy - uy * HL - ny * HW); mx.closePath(); };
+    mx.save(); mx.globalAlpha = alpha; mx.lineJoin = "round";
     // a pale outline so the arrow stands out on a dark, yellow or silver object
-    mx.strokeStyle = "rgba(255,255,255,0.75)"; mx.lineWidth = 5.4; wave(); mx.stroke(); tri(); mx.lineWidth = 3; mx.stroke();
-    mx.strokeStyle = color; mx.lineWidth = 2.4; wave(); mx.stroke();
+    mx.strokeStyle = "rgba(255,255,255,0.75)"; mx.lineCap = "round"; mx.lineWidth = 5.4; wave(); mx.stroke(); tri(); mx.lineWidth = 3; mx.stroke();
+    mx.strokeStyle = color; mx.lineCap = "butt"; mx.lineWidth = 2.4; wave(); mx.stroke();
     tri(); mx.fillStyle = color; mx.fill(); mx.restore();
   }
   function drawArrows(front) {
