@@ -391,11 +391,12 @@ import "./infrared.css";
     const head = Math.min(a.d, len), tail = Math.max(0, head - 46);
     if (head - tail < 4) return;
     const hx = a.x0 + ux * head, hy = a.y0 + uy * head, HL = 10, HW = 5.5, base = head - HL;
-    // The wave calms to a straight line just before the head, and ends exactly at the middle of the head's base.
+    // The wave eases smoothly into the middle of the head's base (it arrives heading straight along the arrow, no corner).
     const wave = () => { mx.beginPath();
-      const end = Math.max(tail, base);
-      for (let s = tail; s < end; s += 1.5) {
-        const o = Math.sin((s - head) / 14 * TWO_PI + a.ph) * 4.5 * Math.min(1, Math.max(0, base - 3 - s) / 9);
+      const end = Math.max(tail, base), EASE = 7;
+      for (let s = tail; s < end; s += 1) {
+        const u = Math.min(1, (base - s) / EASE), env = u * u * (3 - 2 * u); // smoothstep: zero size and zero slope at the base
+        const o = Math.sin((s - base) / 14 * TWO_PI) * 4.5 * env; // timed so the wave crosses the centre line at the base
         const px = a.x0 + ux * s + nx * o, py = a.y0 + uy * s + ny * o;
         s === tail ? mx.moveTo(px, py) : mx.lineTo(px, py);
       }
