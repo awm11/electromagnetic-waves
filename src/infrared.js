@@ -67,7 +67,7 @@ import "./infrared.css";
   const ROOM = { x0: 30, y0: 22, x1: 520, y1: 386, wall: 24 };
   const IN = { x0: ROOM.x0 + ROOM.wall, y0: ROOM.y0 + ROOM.wall, x1: ROOM.x1 - ROOM.wall, y1: ROOM.y1 - ROOM.wall };
   const OC = { x: (IN.x0 + IN.x1) / 2, y: (IN.y0 + IN.y1) / 2 + 14 };
-  const SHAPE = { banana: [96, 44], pottery: [62, 76], bagel: [84, 54] }; // rough size, for shading
+  const SHAPE = { banana: [100, 46], pottery: [62, 76], bagel: [88, 56] }; // rough size, for shading
 
   function drawRoom() {
     const p = sc().place;
@@ -111,19 +111,46 @@ import "./infrared.css";
     g.addColorStop(0, "#f6f8fa"); g.addColorStop(0.35, "#b8c0c8"); g.addColorStop(0.6, "#eef1f4"); g.addColorStop(1, "#9aa3ac");
     return g;
   }
+  // Banana: built along a curved centre line, thicker on the outer (lower) side, blunt tip on the left, stalk on the right.
+  function bananaGeom() {
+    const { x, y } = OC, N = 36, up = [], lo = [], mid = [];
+    const C = s => [x - 4 + 98 * s, y + 34 - 44 * s * s - 10 * s];
+    const nrm = s => { const dy = -88 * s - 10, L = Math.hypot(98, dy); return [-dy / L, 98 / L]; };
+    for (let i = 0; i <= N; i++) {
+      const s = -1 + 2 * i / N, [cx, cy] = C(s), [nx, ny] = nrm(s), f = Math.pow(Math.max(0, 1 - s * s), 0.5);
+      const wl = 25 * f + 3, wu = 17 * f + 3;
+      up.push([cx - nx * wu, cy - ny * wu]); lo.push([cx + nx * wl, cy + ny * wl]); mid.push([cx, cy, nx, ny, wu, wl]);
+    }
+    // stalk: continues the centre line's direction from the right-hand end
+    const [ex, ey] = C(1), dy = -98, L = Math.hypot(98, dy), tx = 98 / L, ty = dy / L, [nx, ny] = nrm(1);
+    const stalk = [[ex + tx * 4 - nx * 4.5, ey + ty * 4 - ny * 4.5], [ex + tx * 22 - nx * 5.5, ey + ty * 22 - ny * 5.5],
+                   [ex + tx * 22 + nx * 5.5, ey + ty * 22 + ny * 5.5], [ex + tx * 4 + nx * 4.5, ey + ty * 4 + ny * 4.5]];
+    return { up, lo, mid, stalk, tip: C(-1), stalkEnd: [ex + tx * 22, ey + ty * 22], t: [tx, ty] };
+  }
+  // Bagel, seen from slightly above: a top face (ellipse with a hole), a short side, and a see-through gap in the hole.
+  const BG = { rx: 88, ry: 46, lift: 8, depth: 20, hrx: 22, hry: 11, hdrop: 9 };
+  function bagelHolePath(x, y) { // the part of the hole you can actually see through
+    const a = Math.asin(BG.hdrop / 2 / BG.hry), yt = y - BG.lift;
+    mx.moveTo(x - BG.hrx * Math.cos(a), yt + BG.hdrop / 2);
+    mx.ellipse(x, yt + BG.hdrop, BG.hrx, BG.hry, 0, Math.PI + a, TWO_PI - a, false);
+    mx.ellipse(x, yt, BG.hrx, BG.hry, 0, a, Math.PI - a, false);
+    mx.closePath();
+  }
   function objectPath() {
     const { x, y } = OC;
     mx.beginPath();
     if (scene === "banana") {
-      mx.moveTo(x - 96, y - 30);
-      mx.quadraticCurveTo(x - 5, y + 88, x + 96, y - 40);
-      mx.lineTo(x + 104, y - 52); mx.lineTo(x + 92, y - 56);
-      mx.quadraticCurveTo(x - 5, y + 24, x - 90, y - 42);
-      mx.quadraticCurveTo(x - 100, y - 40, x - 96, y - 30);
+      const g = bananaGeom();
+      mx.moveTo(g.up[0][0], g.up[0][1]);
+      for (let i = 1; i < g.up.length; i++) mx.lineTo(g.up[i][0], g.up[i][1]);
+      g.stalk.forEach(p => mx.lineTo(p[0], p[1]));
+      for (let i = g.lo.length - 1; i >= 0; i--) mx.lineTo(g.lo[i][0], g.lo[i][1]);
       mx.closePath();
     } else if (scene === "bagel") {
-      mx.ellipse(x, y, 84, 52, 0, 0, TWO_PI);
-      mx.moveTo(x + 22, y); mx.ellipse(x, y, 22, 12, 0, 0, TWO_PI, true);
+      // a bagel's rounded outline, seen from slightly above, is close to one oval
+      const yt = y - BG.lift;
+      mx.ellipse(x, yt + BG.depth / 2, BG.rx + 3, BG.ry + BG.depth / 2, 0, 0, TWO_PI);
+      bagelHolePath(x, y);
     } else {
       mx.moveTo(x - 26, y - 76); mx.lineTo(x + 26, y - 76);
       mx.quadraticCurveTo(x + 22, y - 56, x + 30, y - 46);
@@ -134,19 +161,82 @@ import "./infrared.css";
       mx.closePath();
     }
   }
+  function polyline(pts, from = 0, to = pts.length - 1) {
+    mx.beginPath(); mx.moveTo(pts[from][0], pts[from][1]);
+    for (let i = from + 1; i <= to; i++) mx.lineTo(pts[i][0], pts[i][1]);
+  }
+  function softStroke(pathFn, color, widths) { // a few wide, faint strokes read as a soft shadow or sheen
+    mx.lineCap = "round"; mx.lineJoin = "round"; mx.strokeStyle = color;
+    widths.forEach(w => { pathFn(); mx.lineWidth = w; mx.stroke(); });
+  }
+  function shadeBanana() {
+    const g = bananaGeom(), nat = surf === "natural", shiny = surf === "silver";
+    // stalk and tip
+    mx.save(); objectPath(); mx.clip();
+    mx.beginPath(); g.stalk.forEach((p, i) => i ? mx.lineTo(p[0], p[1]) : mx.moveTo(p[0], p[1])); mx.closePath();
+    mx.fillStyle = nat ? "#a39a45" : "rgba(0,0,0,0.12)"; mx.fill();
+    mx.beginPath(); mx.arc(g.stalkEnd[0] - g.t[0] * 2, g.stalkEnd[1] - g.t[1] * 2, 6.5, 0, TWO_PI);
+    mx.fillStyle = nat ? "#5b4a24" : "rgba(0,0,0,0.3)"; mx.fill();
+    mx.beginPath(); mx.arc(g.tip[0] - 1, g.tip[1], 6, 0, TWO_PI);
+    mx.fillStyle = nat ? "#4a3a1d" : "rgba(0,0,0,0.35)"; mx.fill();
+    // underside in shadow, a sheen along the top, and one ridge along the length
+    softStroke(() => polyline(g.lo), "rgba(60,40,0,0.10)", [26, 16, 8]);
+    if (!shiny) softStroke(() => polyline(g.mid.map(m => [m[0] - m[2] * m[4] * 0.42, m[1] - m[3] * m[4] * 0.42]), 7, 29), "rgba(255,255,255,0.07)", [18, 12, 7]);
+    polyline(g.mid.map(m => [m[0] + m[2] * m[5] * 0.25, m[1] + m[3] * m[5] * 0.25]), 4, 32);
+    mx.lineWidth = 1.2; mx.strokeStyle = "rgba(0,0,0,0.13)"; mx.stroke();
+    if (nat) { // a few freckles
+      mx.fillStyle = "rgba(110,70,20,0.45)";
+      [[9, 0.1, 1.6], [13, 0.5, 1.2], [17, -0.2, 1.8], [20, 0.35, 1.1], [24, 0.05, 1.5], [27, 0.55, 1.2]].forEach(([i, k, r]) => {
+        const m = g.mid[i]; mx.beginPath(); mx.ellipse(m[0] + m[2] * m[5] * k, m[1] + m[3] * m[5] * k, r * 1.4, r, 0, 0, TWO_PI); mx.fill();
+      });
+    }
+    mx.restore();
+  }
+  function shadeBagel() {
+    const { x, y } = OC, yt = y - BG.lift, nat = surf === "natural", shiny = surf === "silver";
+    mx.save(); objectPath(); mx.clip("evenodd");
+    // lit from above: the rounded front and side fall gradually into shadow
+    const sh = mx.createLinearGradient(0, yt, 0, yt + BG.depth + BG.ry);
+    sh.addColorStop(0, "rgba(40,20,0,0)"); sh.addColorStop(0.55, "rgba(40,20,0,0.12)"); sh.addColorStop(1, "rgba(40,20,0,0.34)");
+    mx.fillStyle = sh; mx.fillRect(x - 120, yt - 10, 240, 140);
+    softStroke(() => { mx.beginPath(); mx.ellipse(x, yt + BG.depth, BG.rx, BG.ry, 0, 0.1, Math.PI - 0.1); }, "rgba(40,20,0,0.08)", [22, 12]);
+    // the far inside wall of the hole
+    mx.beginPath(); mx.ellipse(x, yt, BG.hrx, BG.hry, 0, 0, TWO_PI); mx.fillStyle = "rgba(40,20,0,0.38)"; mx.fill();
+    // the top face: rounded, so darker towards both edges and lighter along the middle of the ring
+    mx.beginPath(); mx.ellipse(x, yt, BG.rx, BG.ry, 0, 0, TWO_PI); mx.moveTo(x + BG.hrx, yt); mx.ellipse(x, yt, BG.hrx, BG.hry, 0, 0, TWO_PI, true); mx.clip("evenodd");
+    softStroke(() => { mx.beginPath(); mx.ellipse(x, yt, BG.rx, BG.ry, 0, 0, TWO_PI); }, "rgba(40,20,0,0.08)", [34, 22, 12]);
+    softStroke(() => { mx.beginPath(); mx.ellipse(x, yt, BG.hrx, BG.hry, 0, 0, TWO_PI); }, "rgba(40,20,0,0.12)", [16, 8]);
+    if (!shiny) softStroke(() => { mx.beginPath(); mx.ellipse(x - 4, yt - 5, 56, 27, 0, Math.PI * 1.02, Math.PI * 1.98); }, "rgba(255,240,215,0.08)", [24, 16, 9]);
+    if (nat) { // sesame seeds on top
+      for (let i = 0; i < 16; i++) {
+        const a = i / 16 * TWO_PI + 0.3 * Math.sin(i * 2.7), r = 0.48 + 0.26 * ((i * 7) % 5) / 4;
+        const sx = x + Math.cos(a) * BG.rx * r, sy = yt + Math.sin(a) * BG.ry * r;
+        mx.beginPath(); mx.ellipse(sx, sy, 3.2, 1.6, a + 1.2 + (i % 3) * 0.5, 0, TWO_PI);
+        mx.fillStyle = "#f6e6c2"; mx.fill(); mx.strokeStyle = "rgba(120,80,30,0.45)"; mx.lineWidth = 0.6; mx.stroke();
+      }
+    }
+    mx.restore();
+  }
   function drawObject() {
     const { x, y } = OC, [rx, ry] = SHAPE[scene];
     const glow = Math.max(0, Math.min(1, (T - 450) / 500)); // red-hot glow above about 450 °C
     if (glow > 0) { mx.save(); mx.shadowColor = `rgba(255,120,20,${0.9 * glow})`; mx.shadowBlur = 40 * glow; objectPath(); mx.fillStyle = "#ff9a3c"; mx.fill("evenodd"); mx.restore(); }
+    // a soft shadow underneath, so it sits on the shelf
+    if (scene !== "pottery") {
+      const sy = scene === "banana" ? y + 60 : y + BG.depth + BG.ry - BG.lift - 9;
+      mx.beginPath(); mx.ellipse(scene === "banana" ? x + 4 : x, sy, scene === "banana" ? 70 : 72, scene === "banana" ? 9 : 7, 0, 0, TWO_PI); mx.fillStyle = "rgba(60,40,20,0.13)"; mx.fill();
+    }
     objectPath(); mx.fillStyle = surfaceFill(x - rx, y - ry, x + rx, y + ry); mx.fill("evenodd");
-    if (surf !== "silver") { // a soft highlight so dark surfaces still read as 3D
+    if (scene === "banana") shadeBanana();
+    else if (scene === "bagel") shadeBagel();
+    else if (surf !== "silver") { // a soft highlight so dark surfaces still read as 3D
       mx.save(); objectPath(); mx.clip("evenodd");
       const g = mx.createRadialGradient(x - rx * 0.35, y - ry * 0.5, 4, x - rx * 0.35, y - ry * 0.5, rx);
       g.addColorStop(0, "rgba(255,255,255,0.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
       mx.fillStyle = g; mx.fillRect(x - rx - 10, y - ry - 10, 2 * rx + 20, 2 * ry + 20); mx.restore();
     }
     if (glow > 0) { objectPath(); mx.fillStyle = `rgba(255,110,25,${0.8 * glow})`; mx.fill("evenodd"); }
-    objectPath(); mx.strokeStyle = "rgba(0,0,0,0.45)"; mx.lineWidth = 1.5; mx.stroke();
+    objectPath(); mx.strokeStyle = "rgba(0,0,0,0.45)"; mx.lineWidth = 1.5; mx.lineJoin = "round"; mx.stroke();
   }
 
   // ---- Infrared arrows ----
