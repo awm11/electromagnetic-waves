@@ -341,7 +341,7 @@ import "./infrared.css";
     const x0 = ROOM.x0 + 96, x1 = ROOM.x1, y = ROOM.y1 + 30, bh = 18, gap = 34;
     mx.font = `600 12px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "left"; mx.textBaseline = "middle";
     mx.fillText("Energy transferred by infrared each second", ROOM.x0, y - 14);
-    [["Emitted", pEmit(), COL.outArrow], ["Absorbed", pAbs(), COL.inArrow]].forEach(([lab, v, c], i) => {
+    [["Emission", pEmit(), COL.outArrow], ["Absorption", pAbs(), COL.inArrow]].forEach(([lab, v, c], i) => {
       const yy = y + 10 + i * gap;
       mx.font = `700 14px ${FONT}`; mx.fillStyle = COL.ink; mx.textAlign = "left"; mx.fillText(lab, ROOM.x0, yy);
       rr(mx, x0, yy - bh / 2, x1 - x0, bh, 5); mx.fillStyle = "#eef1f4"; mx.fill();
