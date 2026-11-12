@@ -249,7 +249,8 @@ import "./infrared.css";
       g.addColorStop(0, "rgba(255,255,255,0.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
       mx.fillStyle = g; mx.fillRect(x - rx - 10, y - ry - 10, 2 * rx + 20, 2 * ry + 20); mx.restore();
     }
-    if (glow > 0) { objectPath(); mx.fillStyle = `rgba(255,110,25,${0.8 * glow})`; mx.fill("evenodd"); }
+    // the surface takes on an orange tint as it gets red hot; kept lighter on black, grey and silver so they stay recognisable
+    if (glow > 0) { objectPath(); mx.fillStyle = `rgba(255,110,25,${(surf === "natural" ? 0.8 : 0.28) * glow})`; mx.fill("evenodd"); }
     objectPath(); mx.strokeStyle = "rgba(0,0,0,0.45)"; mx.lineWidth = 1.5; mx.lineJoin = "round"; mx.stroke();
   }
 
