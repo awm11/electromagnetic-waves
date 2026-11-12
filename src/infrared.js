@@ -25,15 +25,20 @@ import "./infrared.css";
     silver: { eps: 0.20, name: "Shiny silver", curve: "#5b93c2" },
   };
   const TWIN = 36, SDT = 1 / 240, K0 = 273.15;
-  const RATE = 7; // infrared arrows per second for the strongest flow in a scenario
+  const RATE = 12; // infrared arrows per second for the strongest flow (a black object at 1000 °C)
 
   let scene = "pottery", surf = "natural", T = 20, t = 0, runs = {};
   const si = k => k === "natural" ? NATURAL[scene] : SURF[k];
   const sc = () => SCENES[scene], eps = () => si(surf).eps;
   const ref4 = () => (Math.max(sc().T0, sc().Ts) + K0) ** 4;
-  const pIn = () => (sc().Ts + K0) ** 4 / ref4();          // infrared arriving from the surroundings (0..1)
-  const pAbs = () => eps() * pIn();                         // the part the surface absorbs
-  const pEmit = () => eps() * (T + K0) ** 4 / ref4();       // what the object emits
+  // Bars and arrows share ONE scale across all scenarios, so a kiln clearly gives more than a cupboard, and a
+  // cupboard more than a freezer. Radiation goes as T⁴ (a 1000 °C kiln gives ~350× a 20 °C cupboard), so the
+  // scale is compressed (logarithmic) to keep every scenario visible. Order and equality are kept: the same
+  // temperature always gives the same level, and the surface multiplies both emission and absorption.
+  const LMIN = 0.2, LMAX = ((1000 + K0) / 293.15) ** 4;
+  const level = Tc => Math.max(0, Math.min(1, Math.log(((Tc + K0) / 293.15) ** 4 / LMIN) / Math.log(LMAX / LMIN)));
+  const pAbs = () => eps() * level(sc().Ts);                // infrared absorbed from the surroundings
+  const pEmit = () => eps() * level(T);                     // infrared emitted by the object
 
   function restart() { T = sc().T0; t = 0; runs[surf] = [[0, T]]; arrows.length = 0; inAcc = 0; outAcc = 0; }
   function step(dt) {
@@ -316,7 +321,8 @@ import "./infrared.css";
     arrows.push({ kind: "out", x0: e[0], y0: e[1], x1: e[2], y1: e[3], d: 0, ph: Math.random() * TWO_PI });
   }
   function updateArrows(dt) {
-    inAcc += RATE * pIn() * dt; outAcc += RATE * pEmit() * dt;
+    // arriving arrows: a fraction eps are absorbed (spawnIn), so absorbed = emitted whenever T = Ts
+    inAcc += RATE * Math.sqrt(level(sc().Ts)) * dt; outAcc += RATE * eps() * Math.sqrt(level(T)) * dt;
     while (inAcc >= 1) { spawnIn(); inAcc--; }
     while (outAcc >= 1) { spawnOut(); outAcc--; }
     for (let i = arrows.length - 1; i >= 0; i--) {
