@@ -12,7 +12,14 @@ import "./infrared.css";
     pottery: { label: "Pottery", place: "kiln",    T0: 20, Ts: 1000, K: 296, yMin: 0,   yMax: 1100, step: 200 },
     bagel:   { label: "Bagel", place: "freezer",   T0: 20, Ts: -18,  K: 73,  yMin: -30, yMax: 30,   step: 10 },
   };
+  // "natural" is the object's own colour, which depends on the scenario (see NATURAL).
+  const NATURAL = {
+    banana:  { eps: 0.6,  name: "Yellow", curve: "#c9a20f", fill: "#f1cc3c" },
+    bagel:   { eps: 0.75, name: "Brown",  curve: "#8a5527", fill: "#b9793f" },
+    pottery: { eps: 0.8,  name: "Clay",   curve: "#b1532a", fill: "#c56a3e" },
+  };
   const SURF = {
+    natural: null,
     black:  { eps: 0.95, name: "Matt black",   curve: "#202326" },
     grey:   { eps: 0.55, name: "Grey",         curve: "#8a9097" },
     silver: { eps: 0.20, name: "Shiny silver", curve: "#5b93c2" },
@@ -20,8 +27,9 @@ import "./infrared.css";
   const TWIN = 36, SDT = 1 / 240, K0 = 273.15;
   const RATE = 7; // infrared arrows per second for the strongest flow in a scenario
 
-  let scene = "pottery", surf = "black", T = 20, t = 0, runs = {};
-  const sc = () => SCENES[scene], eps = () => SURF[surf].eps;
+  let scene = "pottery", surf = "natural", T = 20, t = 0, runs = {};
+  const si = k => k === "natural" ? NATURAL[scene] : SURF[k];
+  const sc = () => SCENES[scene], eps = () => si(surf).eps;
   const ref4 = () => (Math.max(sc().T0, sc().Ts) + K0) ** 4;
   const pIn = () => (sc().Ts + K0) ** 4 / ref4();          // infrared arriving from the surroundings (0..1)
   const pAbs = () => eps() * pIn();                         // the part the surface absorbs
@@ -96,6 +104,7 @@ import "./infrared.css";
   }
 
   function surfaceFill(x0, y0, x1, y1) {
+    if (surf === "natural") return NATURAL[scene].fill;
     if (surf === "black") return "#262829";
     if (surf === "grey") return "#8d939a";
     const g = mx.createLinearGradient(x0, y0, x1, y1);
@@ -256,21 +265,21 @@ import "./infrared.css";
     order.forEach(k => {
       const run = runs[k]; if (!run || run.length < 1) return;
       const cur = k === surf;
-      mx.save(); mx.globalAlpha = cur ? 1 : 0.8; mx.strokeStyle = SURF[k].curve; mx.lineWidth = cur ? 3.2 : 1.8; mx.lineJoin = "round";
+      mx.save(); mx.globalAlpha = cur ? 1 : 0.8; mx.strokeStyle = si(k).curve; mx.lineWidth = cur ? 3.2 : 1.8; mx.lineJoin = "round";
       mx.beginPath(); run.forEach(([tt, v], i) => i ? mx.lineTo(X(tt), Y(v)) : mx.moveTo(X(tt), Y(v)));
       if (cur) mx.lineTo(X(Math.min(t, TWIN)), Y(T));
       mx.stroke();
       const [et, ev] = cur ? [Math.min(t, TWIN), T] : run[run.length - 1];
-      if (cur) { mx.beginPath(); mx.arc(X(et), Y(ev), 5.5, 0, TWO_PI); mx.fillStyle = SURF[k].curve; mx.fill(); }
+      if (cur) { mx.beginPath(); mx.arc(X(et), Y(ev), 5.5, 0, TWO_PI); mx.fillStyle = si(k).curve; mx.fill(); }
       mx.restore();
     });
     // legend of the surfaces drawn so far
     let lx = G.x0 + 10; const ly = G.y0 + 2;
     mx.font = `600 12px ${FONT}`; mx.textBaseline = "middle"; mx.textAlign = "left";
     order.slice().sort((a, b) => Object.keys(SURF).indexOf(a) - Object.keys(SURF).indexOf(b)).forEach(k => {
-      mx.strokeStyle = SURF[k].curve; mx.lineWidth = k === surf ? 3.2 : 1.8; mx.beginPath(); mx.moveTo(lx, ly); mx.lineTo(lx + 18, ly); mx.stroke();
-      mx.fillStyle = COL.ink; mx.fillText(SURF[k].name, lx + 24, ly);
-      lx += 24 + mx.measureText(SURF[k].name).width + 18;
+      mx.strokeStyle = si(k).curve; mx.lineWidth = k === surf ? 3.2 : 1.8; mx.beginPath(); mx.moveTo(lx, ly); mx.lineTo(lx + 18, ly); mx.stroke();
+      mx.fillStyle = COL.ink; mx.fillText(si(k).name, lx + 24, ly);
+      lx += 24 + mx.measureText(si(k).name).width + 18;
     });
   }
 
@@ -312,6 +321,7 @@ import "./infrared.css";
     if (!SCENES[k]) return;
     scene = k; runs = {};
     sceneBtns.forEach(b => b.classList.toggle("on", b.dataset.scene === k));
+    document.getElementById("natBtn").textContent = NATURAL[k].name;
     restart();
   }
   sceneBtns.forEach(b => b.addEventListener("click", () => { setScene(b.dataset.scene); history.replaceState(null, "", "#" + scene); }));
