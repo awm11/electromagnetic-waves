@@ -8,9 +8,9 @@ import "./infrared.css";
   // dT/dt = K * eps * (Ts^4 - T^4) / Tref^4, temperatures in kelvin. K is chosen per scenario so a matt black
   // object settles in about 7 s of screen time (time is sped up), grey in about 12 s and shiny silver in about 33 s.
   const SCENES = {
-    banana:  { label: "Banana", place: "cupboard", T0: 20, Ts: 20,   K: 73,  yMin: 0,   yMax: 40,   step: 10 },
-    pottery: { label: "Pottery", place: "kiln",    T0: 20, Ts: 1000, K: 296, yMin: 0,   yMax: 1100, step: 200 },
-    bagel:   { label: "Bagel", place: "freezer",   T0: 20, Ts: -18,  K: 73,  yMin: -30, yMax: 30,   step: 10 },
+    banana:  { label: "Banana", place: "cupboard", T0: 20, Ts: 20,   K: 73,  yMin: 0,   yMax: 40,   step: 10, tMax: 180, tStep: 30 },
+    pottery: { label: "Pottery", place: "kiln",    T0: 20, Ts: 1000, K: 296, yMin: 0,   yMax: 1100, step: 200, tMax: 60,  tStep: 10 },
+    bagel:   { label: "Bagel", place: "freezer",   T0: 20, Ts: -18,  K: 73,  yMin: -30, yMax: 30,   step: 10, tMax: 180, tStep: 30 },
   };
   // "natural" is the object's own colour, which depends on the scenario (see NATURAL).
   const NATURAL = {
@@ -66,8 +66,9 @@ import "./infrared.css";
   const main = document.getElementById("main"), mx = main.getContext("2d");
   let dpr = 1;
   function setup() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    main.width = W * dpr; main.height = H * dpr; mx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const shown = main.clientWidth || W, k = Math.min(window.devicePixelRatio || 1, 2) * Math.max(1, shown / W);
+    dpr = Math.min(k, 4);
+    main.width = Math.round(W * dpr); main.height = Math.round(H * dpr); mx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
   function pill(text, x, y, align = "center", color = COL.ink) {
@@ -484,8 +485,18 @@ import "./infrared.css";
       mx.fillStyle = COL.muted; mx.fillText(`${v}`, G.x0 - 8, yy);
     }
     mx.save(); mx.translate(G.x0 - 44, (G.y0 + G.y1) / 2); mx.rotate(-Math.PI / 2); mx.textAlign = "center"; mx.fillStyle = COL.muted; mx.font = `600 13px ${FONT}`; mx.fillText("temperature (°C)", 0, 0); mx.restore();
+    // time axis: the animation is sped up, so each scenario gets its own scale in minutes (the kiln is quicker, because
+    // radiation is far stronger at high temperature)
+    mx.font = `13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.textBaseline = "top";
+    for (let m = 0; m <= s.tMax + 1e-9; m += s.tStep) {
+      const xx = G.x0 + m / s.tMax * (G.x1 - G.x0);
+      if (m > 0) { mx.strokeStyle = "#eef1f4"; mx.lineWidth = 1; mx.beginPath(); mx.moveTo(xx, G.y0); mx.lineTo(xx, G.y1); mx.stroke(); }
+      mx.strokeStyle = "#a7afb8"; mx.beginPath(); mx.moveTo(xx, G.y1); mx.lineTo(xx, G.y1 + 5); mx.stroke();
+      mx.fillText(`${m}`, xx, G.y1 + 8);
+    }
+    mx.font = `600 13px ${FONT}`; mx.fillText("time (minutes)", (G.x0 + G.x1) / 2, G.y1 + 27);
+    mx.textBaseline = "middle";
     mx.strokeStyle = "#a7afb8"; mx.lineWidth = 1.5; mx.beginPath(); mx.moveTo(G.x0, G.y0); mx.lineTo(G.x0, G.y1); mx.lineTo(G.x1, G.y1); mx.stroke();
-    mx.font = `italic 700 17px "Times New Roman", Times, Georgia, serif`; mx.fillStyle = COL.muted; mx.textAlign = "center"; mx.fillText("t", G.x1 - 4, G.y1 + 18);
     // surroundings temperature
     const ys = Y(s.Ts);
     mx.setLineDash([6, 5]); mx.strokeStyle = "#b45309"; mx.lineWidth = 1.6; mx.beginPath(); mx.moveTo(G.x0, ys); mx.lineTo(G.x1, ys); mx.stroke(); mx.setLineDash([]);
@@ -530,9 +541,10 @@ import "./infrared.css";
   const statusText = document.getElementById("statusText"), dot = document.getElementById("dot");
   let shown = "";
   function updateText() {
-    const e = pEmit(), a = pAbs(), d = (e - a) / Math.max(e, a, 1e-9);
-    const msg = Math.abs(d) < 0.03 ? "Absorbing as much as it emits: temperature steady" : d > 0 ? "Emitting more than it absorbs: cooling down" : "Absorbing more than it emits: warming up";
-    if (msg !== shown) { shown = msg; statusText.textContent = msg; dot.classList.toggle("on", Math.abs(d) < 0.03); }
+    // judged from the real temperatures (the bars use a compressed scale, so they can't tell 906 °C from 1000 °C well)
+    const s = sc(), diff = T - s.Ts, steady = Math.abs(diff) < Math.max(0.5, 0.005 * Math.abs(s.Ts - s.T0));
+    const msg = steady ? "Absorbing as much as it emits: temperature steady" : diff > 0 ? "Emitting more than it absorbs: cooling down" : "Absorbing more than it emits: warming up";
+    if (msg !== shown) { shown = msg; statusText.textContent = msg; dot.classList.toggle("on", steady); }
   }
 
   let last = performance.now(), acc = 0;
@@ -562,6 +574,26 @@ import "./infrared.css";
   }));
   document.getElementById("restartBtn").addEventListener("click", restart);
   window.addEventListener("resize", setup);
+
+  // Full screen: the whole simulation card (scenarios, scene, graph and controls) fills the screen.
+  const fsBtn = document.getElementById("fsBtn"), card = fsBtn.closest(".card");
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const canFs = (card.requestFullscreen || card.webkitRequestFullscreen) && (document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  if (!canFs) fsBtn.hidden = true;
+  fsBtn.addEventListener("click", () => {
+    try {
+      const r = fsEl() ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+                       : (card.requestFullscreen || card.webkitRequestFullscreen).call(card);
+      if (r && r.catch) r.catch(() => {});
+    } catch (e) { /* full screen not allowed here */ }
+  });
+  const onFs = () => {
+    const on = !!fsEl();
+    fsBtn.querySelector("span").textContent = on ? "Exit full screen" : "Full screen";
+    fsBtn.setAttribute("aria-pressed", on);
+    requestAnimationFrame(setup);
+  };
+  document.addEventListener("fullscreenchange", onFs); document.addEventListener("webkitfullscreenchange", onFs);
   window.addEventListener("hashchange", () => setScene(location.hash.slice(1)));
 
   setup();
