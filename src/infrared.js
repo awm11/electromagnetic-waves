@@ -27,7 +27,7 @@ import "./infrared.css";
   const TWIN = 36, SDT = 1 / 240, K0 = 273.15;
   const RATE = 12; // infrared arrows per second for the strongest flow (a black object at 1000 °C)
 
-  let scene = "pottery", surf = "natural", T = 20, t = 0, runs = {};
+  let scene = "pottery", surf = "natural", T = 20, t = 0, runs = {}, realTime = false;
   const si = k => k === "natural" ? NATURAL[scene] : SURF[k];
   const sc = () => SCENES[scene], eps = () => si(surf).eps;
   const ref4 = () => (Math.max(sc().T0, sc().Ts) + K0) ** 4;
@@ -477,6 +477,10 @@ import "./infrared.css";
     const s = sc(), X = tt => G.x0 + tt / TWIN * (G.x1 - G.x0), Y = v => G.y1 - (v - s.yMin) / (s.yMax - s.yMin) * (G.y1 - G.y0);
     mx.font = `700 15px ${FONT}`; mx.fillStyle = COL.ink; mx.textAlign = "left"; mx.textBaseline = "middle";
     mx.fillText("Temperature of the " + s.label.toLowerCase(), G.x0 - 52, 24);
+    const mins = Math.min(t, TWIN) / TWIN * s.tMax, whole = Math.floor(mins), secs = Math.floor((mins - whole) * 60);
+    const clock = whole >= 60 ? `${Math.floor(whole / 60)} h ${String(whole % 60).padStart(2, "0")} min` : `${whole} min ${String(secs).padStart(2, "0")} s`;
+    mx.font = `600 13px ${FONT}`; mx.fillStyle = COL.muted; mx.textAlign = "right";
+    mx.fillText("time: " + clock + (realTime ? "  (real time)" : ""), G.x1, 24);
     // grid and axes
     mx.font = `13px ${FONT}`; mx.textAlign = "right";
     for (let v = s.yMin; v <= s.yMax + 1e-9; v += s.step) {
@@ -550,7 +554,9 @@ import "./infrared.css";
   let last = performance.now(), acc = 0;
   function loop(now) {
     const real = Math.min(0.05, (now - last) / 1000); last = now;
-    acc += real;
+    // Normally the heating or cooling is sped up so a whole run takes about half a minute. In real time it runs at the
+    // rate the graph's time axis shows (minutes really are minutes). The infrared arrows move at the same speed either way.
+    acc += realTime ? real * TWIN / (sc().tMax * 60) : real;
     while (acc >= SDT) { step(SDT); acc -= SDT; }
     updateArrows(real);
     draw(); updateText();
@@ -573,6 +579,11 @@ import "./infrared.css";
     restart();
   }));
   document.getElementById("restartBtn").addEventListener("click", restart);
+  const rtBtn = document.getElementById("rtBtn");
+  rtBtn.addEventListener("click", () => {
+    realTime = !realTime; acc = 0;
+    rtBtn.setAttribute("aria-pressed", realTime); document.getElementById("rtTog").classList.toggle("on", realTime);
+  });
   window.addEventListener("resize", setup);
 
   // Full screen: the whole simulation card (scenarios, scene, graph and controls) fills the screen.

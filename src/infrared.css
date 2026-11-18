@@ -9,3 +9,4 @@
 .card:-webkit-full-screen { border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; justify-content: center; overflow: auto; background: var(--card); width: 100%; height: 100%; }
 .card:-webkit-full-screen .stage canvas#main { width: min(100%, calc((100vh - 140px) * 1100 / 486)); margin: 0 auto; }
 @media (max-width: 760px) { .seg.fsBtn { margin-left: 0; } }
+.switchBtn.rtBtn { margin-left: 14px; }
