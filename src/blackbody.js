@@ -470,13 +470,31 @@ import "./blackbody.css";
   const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
   const pow10 = e => e === 0 ? "1" : e === 1 ? "10" : "10" + String(e).split("").map(c => SUP[c]).join("");
   let linStrip = null, linKey = "";
+  // True scale without comparison curves: the axis stays fixed over a range of temperatures, so you can watch the
+  // curve grow and shrink, and only jumps to a new scale (animated over 0.5 s) when the curve goes off the top or
+  // shrinks below a third of the height. Scales step through 1, 2, 5, 10, 20, 50, ...
+  const niceCeil = x => { const m = 10 ** Math.floor(Math.log10(x)), f = x / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; };
+  const AX = { from: 0, to: 0, t0: -1, dur: 0.5 };
+  function steppedAxis(curveMax) {
+    const need = Math.max(curveMax, 1e-12) * 1.05;
+    if (!AX.to) { AX.from = AX.to = niceCeil(need); AX.t0 = -1; }
+    else if (need > AX.to || need < AX.to / 3) { AX.from = axisNow(); AX.to = niceCeil(need); AX.t0 = time; }
+    return axisNow();
+  }
+  function axisNow() {
+    if (AX.t0 < 0) return AX.to;
+    const f = Math.min(1, (time - AX.t0) / AX.dur), e = f < 0.5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2;
+    if (f >= 1) AX.t0 = -1;
+    return AX.from * (AX.to / AX.from) ** e; // move smoothly in proportion, so big jumps look even
+  }
   function drawGraph() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
     const refT = refs ? PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => Math.abs(Math.log(t / T)) > 0.03) : [];
     const shown = [T, ...refT];
     let yMax, yMin = 0, Y;
     if (scale === "true") {
-      yMax = Math.max(...shown.map(t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t))) * 1.08;
+      const hi = Math.max(...shown.map(t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t)));
+      if (refs) { yMax = hi * 1.08; AX.to = 0; } else yMax = steppedAxis(hi);
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
       yMin = LMIN; yMax = LMAX;
