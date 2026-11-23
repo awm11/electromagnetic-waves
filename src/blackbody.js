@@ -570,7 +570,7 @@ import "./blackbody.css";
     // follows the rock's curve alone, so the comparison curves can run off the top.
     const real = scale === "sun" || scale === "dynamic";
     // The comparison curves are always drawn, even when the rock is at one of those temperatures.
-    const refT = PRESETS.slice(2, 7).map(p => p[0] + K0); // coal, candle, lamp, Sun and hot blue star
+    const refT = PRESETS.map(p => p[0] + K0); // every preset: room, hot plate, coal, candle, lamp, Sun, hot blue star
     const shown = [T, ...refT];
     // the temperature the curve is drawn at: on the dynamic scale it moves to a new temperature over 0.6 s
     const Td = scale === "dynamic" ? shownT() : (DT.cur = null, T);
@@ -579,7 +579,7 @@ import "./blackbody.css";
       const top = t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t);
       // fitted to the rock and the comparison temperatures up to the Sun, so the Sun's peak stays near the top;
       // the hot blue star's curve runs off the top unless the rock is that hot
-      if (scale === "sun") { yMax = Math.max(top(T), ...PRESETS.slice(2, 6).map(p => top(p[0] + K0))) * 1.08; AX.to = 0; }
+      if (scale === "sun") { yMax = Math.max(top(T), ...PRESETS.slice(0, 6).map(p => top(p[0] + K0))) * 1.08; AX.to = 0; }
       else yMax = DT.t0 >= 0 ? axisNow() : steppedAxis(top(Td)); // hold the scale while the curve changes size
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
@@ -662,8 +662,10 @@ import "./blackbody.css";
     refT.forEach(t => {
       const pk = Math.min(G.lmax, peakNm(t)), y = yN(rel(pk, t), t), name = PRESETS.find(p => Math.abs(p[0] + K0 - t) < 1)[1];
       if (y < G.t - 2 || y > G.b - 12) return;
-      const short = { "red-hot coal": "coal", "a candle flame": "candle", "a lamp filament": "lamp", "the surface of the Sun": "Sun", "a hot blue star": "hot star" }[name] || name;
-      pill(short, gx(pk), y - 14, { dark: false, size: 11, color: "#59636f" });
+      const short = { "red-hot coal": "coal", "a candle flame": "candle", "a lamp filament": "lamp", "the surface of the Sun": "Sun", "a hot blue star": "hot star", "room temperature": "room", "a hot plate": "hot plate" }[name] || name;
+      // a curve whose peak is beyond the right-hand edge is labelled where it leaves the graph
+      if (peakNm(t) > G.lmax) pill(short, G.r - 4, y - 14, { dark: false, size: 11, color: "#59636f", align: "right" });
+      else pill(short, gx(pk), y - 14, { dark: false, size: 11, color: "#59636f" });
     });
 
     // the peak of the current curve (Wien's law)
