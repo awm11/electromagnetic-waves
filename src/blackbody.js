@@ -104,7 +104,7 @@ import "./blackbody.css";
   // What one wavelength looks like on the screen at temperature T: its colour, scaled by the (squashed) intensity.
   // Very bright light also bleaches towards white, as it does to our eyes and to cameras.
   // With goggles on, the false colour fades in gradually beyond the visible ends, overlapping the fading red and
-  // violet, so there is no hard edge. wIr and wUv say how strongly; by default, infrared fades in from 680 to 900 nm
+  // violet, so there is no hard edge. wIr and wUv say how strongly; by default, infrared fades in from 660 to 760 nm
   // and ultraviolet from 410 down to 340 nm (the prism screen passes its own, based on position across the screen).
   function screenRGB(nm, T, gog, ugog, wIr, wUv) {
     const v = bright(rel(nm, T));
@@ -118,7 +118,7 @@ import "./blackbody.css";
     }
     // crossfade (rather than add) so the overlap doesn't turn a muddy dark brown
     const mix = (col, f) => { if (f > 0) out = out.map((k, i) => k + (col[i] - k) * f); };
-    if (gog) mix(irRGB(v), wIr ?? smooth((nm - 680) / 220));
+    if (gog) mix(irRGB(v), wIr ?? smooth((nm - 660) / 100));
     if (ugog) mix(uvRGB(v), wUv ?? smooth((410 - nm) / 70));
     return out;
   }
@@ -210,7 +210,7 @@ import "./blackbody.css";
     // the screen gives the near infrared little width, so the false colours fade in over a set distance across it
     for (let i = 0; i < SPX; i++) {
       const u = (i + 0.5) / SPX;
-      cols[i] = screenRGB(lamAt(u), T, gog, ugog, smooth((u - 0.465) / 0.09), smooth((0.165 - u) / 0.075));
+      cols[i] = screenRGB(lamAt(u), T, gog, ugog, smooth((u - 0.44) / 0.07), smooth((0.165 - u) / 0.075));
     }
     for (let j = 0; j < SPY; j++) {
       const d = Math.abs((j + 0.5) / SPY - 0.5) * 2, p = 1 / (1 + Math.exp((d - 0.72) / 0.07));
