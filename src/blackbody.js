@@ -128,7 +128,7 @@ import "./blackbody.css";
   let T = 900 + K0, view = "prism", gog = false, ugog = false, scale = "sun", thT = 20, time = 0;
   const PRESETS = [
     [20, "room temperature"], [300, "a hot plate"], [900, "red-hot coal"], [1400, "a candle flame"],
-    [2500, "a lamp filament"], [5500, "the surface of the Sun"], [10000, "a hot blue star"]];
+    [2800, "a lamp filament"], [5500, "the surface of the Sun"], [10000, "a hot blue star"]];
   const sToT = s => TMIN * (TMAX / TMIN) ** (s / 1000);
   const tToS = t => Math.round(1000 * Math.log(t / TMIN) / Math.log(TMAX / TMIN));
 
