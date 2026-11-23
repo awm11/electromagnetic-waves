@@ -27,10 +27,10 @@ import "./blackbody.css";
   const TH_NM = 3000;
   const TH_GAIN = 1 / (planck(TH_NM, 900 + K0) - planck(TH_NM, TROOM));
   // That honest scale leaves cooler rocks barely moving it, so the rise is cheated upwards for low temperatures:
-  // the same order, the same top (10,000 °C still gives about +99 °C), but small rises are boosted (rise^0.55).
+  // a boost that fades away as the rise grows, so coal reads about 28 °C but the lamp, Sun and star read almost
+  // what they honestly would. The reading still rises steadily with temperature.
   const thRise = T => Math.max(0, TH_GAIN * (planck(TH_NM, T) - planck(TH_NM, TROOM)));
-  const TH_TOP = thRise(TMAX);
-  const thTarget = T => 20 + TH_TOP * (thRise(T) / TH_TOP) ** 0.55;
+  const thTarget = T => { const r = thRise(T); return 20 + r + 7.5 * Math.sqrt(r) * Math.exp(-r / 8); };
 
   // ================= Colour =================
   // CIE 1931 colour matching functions (multi-lobe Gaussian fit, Wyman, Sloan & Shirley 2013), XYZ → sRGB.
