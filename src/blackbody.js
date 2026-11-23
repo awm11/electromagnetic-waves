@@ -40,14 +40,25 @@ import "./blackbody.css";
   const smooth = f => { f = Math.max(0, Math.min(1, f)); return f * f * (3 - 2 * f); };
 
   // The colour of pure light of one wavelength, at full brightness, faded at the ends of the visible range
-  // where the eye is barely sensitive.
-  const SPEC = [], HUE = [];
+  // where the eye is barely sensitive. Pure spectral colours lie outside what a screen can show, and clipping them
+  // leaves flat bands (violet, blue, cyan, green, yellow, red), so the clipped colours are blurred a little along
+  // the spectrum to give a smooth rainbow.
+  const SPEC = [], HUE = [], LIN = [];
   for (let nm = 380; nm <= 740; nm++) {
-    let [r, g, b] = toLin(cie(nm)).map(c => Math.max(0, c));
-    const M = Math.max(r, g, b) || 1;
+    const c = toLin(cie(nm)).map(k => Math.max(0, k)), M = Math.max(...c) || 1;
+    LIN.push(c.map(k => k / M));
+  }
+  const SIG = 11;
+  for (let i = 0; i < LIN.length; i++) {
+    const acc = [0, 0, 0]; let wt = 0;
+    for (let j = -3 * SIG; j <= 3 * SIG; j++) {
+      const k = Math.max(0, Math.min(LIN.length - 1, i + j)), w = Math.exp(-0.5 * (j / SIG) ** 2);
+      acc[0] += LIN[k][0] * w; acc[1] += LIN[k][1] * w; acc[2] += LIN[k][2] * w; wt += w;
+    }
+    const M = Math.max(...acc) || 1, nm = 380 + i;
     const f = nm < 445 ? smooth((nm - 395) / 50) : nm > 650 ? smooth((740 - nm) / 90) : 1;
-    HUE.push([enc(r / M), enc(g / M), enc(b / M)]);
-    SPEC.push(HUE[HUE.length - 1].map(c => c * f));
+    HUE.push(acc.map(k => enc(k / M)));
+    SPEC.push(HUE[i].map(k => k * f));
   }
   const specRGB = nm => nm < 380 || nm > 740 ? [0, 0, 0] : SPEC[Math.round(nm) - 380];
 
