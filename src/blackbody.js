@@ -471,14 +471,15 @@ import "./blackbody.css";
   const pow10 = e => e === 0 ? "1" : e === 1 ? "10" : "10" + String(e).split("").map(c => SUP[c]).join("");
   let linStrip = null, linKey = "";
   // True scale without comparison curves: the axis stays fixed over a range of temperatures, so you can watch the
-  // curve grow and shrink, and only jumps to a new scale (animated over 0.5 s) when the curve goes off the top or
-  // shrinks below a third of the height. Scales step through 1, 2, 5, 10, 20, 50, ...
-  const niceCeil = x => { const m = 10 ** Math.floor(Math.log10(x)), f = x / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; };
-  const AX = { from: 0, to: 0, t0: -1, dur: 0.5 };
+  // curve grow and shrink, and only rescales (animated over 0.5 s) when it has to. Heating: when the peak reaches the
+  // top, the axis grows so the peak drops to a fifth of the height, ready to grow again. Cooling: when the peak falls
+  // below a fifth of the height, the axis shrinks so the peak sits right at the top again.
+  const AX = { from: 0, to: 0, t0: -1, dur: 0.5 }, AX_LOW = 0.2, AX_TOP = 1.03;
   function steppedAxis(curveMax) {
-    const need = Math.max(curveMax, 1e-12) * 1.05;
-    if (!AX.to) { AX.from = AX.to = niceCeil(need); AX.t0 = -1; }
-    else if (need > AX.to || need < AX.to / 3) { AX.from = axisNow(); AX.to = niceCeil(need); AX.t0 = time; }
+    const top = Math.max(curveMax, 1e-12) * AX_TOP;
+    if (!AX.to) { AX.from = AX.to = top; AX.t0 = -1; }
+    else if (top > AX.to * 1.0001) { AX.from = axisNow(); AX.to = top / AX_LOW; AX.t0 = time; }
+    else if (top < AX.to * AX_LOW) { AX.from = axisNow(); AX.to = top; AX.t0 = time; }
     return axisNow();
   }
   function axisNow() {
