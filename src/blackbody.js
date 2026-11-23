@@ -419,8 +419,9 @@ import "./blackbody.css";
       mx.strokeStyle = css(c, alpha * 0.25); mx.lineWidth = w * 1.8; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
       mx.strokeStyle = css(c, alpha * 0.8); mx.lineWidth = w * 0.7; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
     }
-    // invisible radiation in the beam, seen through the goggles, as moving dashes
-    for (const e of extras) {
+    // invisible radiation in the beam, seen through the goggles, as moving dashes. Once the beam carries visible
+    // light, the visible beam stands for all of it, so the dashes are left out.
+    if (alpha <= 0.01) for (const e of extras) {
       if (!e || e[1] <= 0.05) continue;
       const [col, vv, ph] = e;
       mx.setLineDash([6, 5]); mx.lineDashOffset = -time * 40 + ph; mx.strokeStyle = css(col, 0.7 * vv); mx.lineWidth = w * 0.5;
