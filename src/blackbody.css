@@ -1,7 +1,7 @@
 /* Black body page: everything else comes from the shared style.css */
 .stage canvas#main { aspect-ratio: 1100 / 540; background: #0c1016; }
 .seg.fsBtn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
-.bbControls { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.bbControls { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 12px; }
 .bbControls .toggles { gap: 8px 22px; }
 .bbControls .toggles .status { margin-left: auto; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
