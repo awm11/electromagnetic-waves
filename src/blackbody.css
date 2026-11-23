@@ -1,0 +1,28 @@
+/* Black body page: everything else comes from the shared style.css */
+.stage canvas#main { aspect-ratio: 1100 / 540; background: #0c1016; }
+.seg.fsBtn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
+.bbControls { display: grid; grid-template-columns: 1fr auto; gap: 12px 22px; }
+.bbControls .tempRow, .bbControls .presets, .bbControls .toggles { grid-column: 1 / -1; }
+.bbControls .status { grid-column: 2; grid-row: 3; }
+.bbControls .toggles { grid-column: 1; gap: 8px 22px; }
+.tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.tempRow .barLabel { margin-right: 0; }
+.tRead { min-width: 190px; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tRead small { color: var(--muted); font-weight: 600; font-size: 13px; margin-left: 4px; }
+#tSlider { flex: 1 1 320px; min-width: 200px; height: 30px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+#tSlider::-webkit-slider-runnable-track { height: 12px; border-radius: 99px; background: var(--track, #ccc); border: 1px solid var(--line-strong); }
+#tSlider::-moz-range-track { height: 12px; border-radius: 99px; background: var(--track, #ccc); border: 1px solid var(--line-strong); }
+#tSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -8px; border-radius: 50%; background: #fff; border: 2px solid var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+#tSlider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+#tSlider:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 99px; }
+.presets .seg { padding: 6px 13px; font-size: 13px; }
+.graphOnly.btnRow { gap: 8px; }
+.card:fullscreen { border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; justify-content: center; overflow: auto; background: var(--card); }
+.card:fullscreen .stage canvas#main { width: min(100%, calc((100vh - 250px) * 1100 / 540)); margin: 0 auto; }
+.card:-webkit-full-screen { border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; justify-content: center; overflow: auto; background: var(--card); width: 100%; height: 100%; }
+.card:-webkit-full-screen .stage canvas#main { width: min(100%, calc((100vh - 250px) * 1100 / 540)); margin: 0 auto; }
+@media (max-width: 760px) {
+  .seg.fsBtn { margin-left: 0; }
+  .bbControls { display: flex; }
+  .tRead { min-width: 0; }
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Black Body Radiation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+  </head>
+  <body>
+<div class="shell has-brand">
+  <a class="awm-logo-link page-logo" href="/" target="_blank" rel="noopener noreferrer" aria-label="More simulations at alexmoorephysics.com" title="More simulations"><img src="/favicon.svg" alt="" /></a>
+  <header class="heading">
+    <nav class="eyebrow crumbs" aria-label="Breadcrumb"><a class="crumbBack" href="../" title="Back to the other electromagnetic spectrum simulations"><span aria-hidden="true">←</span>EM spectrum</a><span class="sep" aria-hidden="true">/</span><span class="here" aria-current="page">Black body radiation</span></nav>
+    <h1>Black body radiation</h1>
+    <p class="intro" id="intro">Heat a rock and it gives out radiation in all directions. Let a beam of it through a hole and split it with a prism, and the screen shows how much of each colour, and how much infrared, the rock is&nbsp;emitting.</p>
+  </header>
+
+  <section class="card">
+    <div class="viewBar" role="group" aria-label="View">
+      <span class="barLabel">View</span>
+      <button class="seg on" data-view="prism">Prism and screen</button>
+      <button class="seg" data-view="graph">Black body curve</button>
+      <button class="seg fsBtn" id="fsBtn" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Full screen</span></button>
+    </div>
+
+    <div class="stage">
+      <canvas id="main" aria-label="A hot rock glowing behind a wall with a hole. A beam through the hole is split by a prism into a spectrum on a dark screen, with a thermometer taped in the infrared part."></canvas>
+    </div>
+
+    <div class="controls bbControls">
+      <div class="tempRow">
+        <label class="barLabel" for="tSlider">Temperature of the rock</label>
+        <input type="range" id="tSlider" min="0" max="1000" step="1" value="500" aria-describedby="tRead" />
+        <span class="tRead" id="tRead"></span>
+      </div>
+      <div class="btnRow presets" role="group" aria-label="As hot as">
+        <span class="barLabel">As hot as</span>
+        <button class="seg" data-t="20">Room</button>
+        <button class="seg" data-t="300">Hot plate</button>
+        <button class="seg" data-t="900">Red-hot coal</button>
+        <button class="seg" data-t="1400">Candle flame</button>
+        <button class="seg" data-t="2500">Lamp filament</button>
+        <button class="seg" data-t="5500">Surface of the Sun</button>
+        <button class="seg" data-t="10000">Hot blue star</button>
+      </div>
+      <div class="btnRow toggles">
+        <button class="switchBtn" id="gogBtn" aria-pressed="false" title="See the infrared in false colour"><span class="toggle" id="gogTog"><span class="knob"></span></span>Infrared goggles</button>
+        <span class="graphOnly btnRow" role="group" aria-label="Scale of the graph" hidden>
+          <span class="barLabel">Graph scale</span>
+          <button class="seg on" data-scale="true" title="The real heights: hotter objects give out vastly more">True scale</button>
+          <button class="seg" data-scale="log" title="Each gridline up is 10 times more, just like the brightness on the screen">Squashed, like the screen</button>
+          <button class="seg" data-scale="norm" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
+        </span>
+        <button class="switchBtn graphOnly" id="refBtn" aria-pressed="true" hidden><span class="toggle on" id="refTog"><span class="knob"></span></span>Compare temperatures</button>
+      </div>
+      <div class="status"><span class="dot on" id="dot"></span><span id="statusText"></span></div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="lessonBox">
+      <h2>1. Hotter means more of everything</h2>
+      <p>Every object emits <b>electromagnetic radiation</b>. As it gets hotter, it emits more radiation at <b>every</b> wavelength, and the total power goes up enormously. Below about 500&nbsp;°C, almost all of it is <b>infrared</b>, which we cannot see but can feel as heat.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>2. The colour changes</h2>
+      <p>As the temperature rises, the <b>peak</b> of the emission moves to <b>shorter wavelengths</b>. A hot object first glows dull red, then orange, yellow and white. The very hottest stars look blue-white. The thermometer in the infrared heats up long before the screen shows any light.</p>
+    </div>
+    <div class="lessonBox">
+      <h2>3. Reading the curve</h2>
+      <p>The black body curve plots <b>intensity</b> against <b>wavelength</b>. Its height at each wavelength tells you how bright that part of the screen is. The real range of brightness is far too big to show, so the screen is <b>squashed</b>: each step brighter is about ten times more light.</p>
+    </div>
+  </section>
+  <div class="didYouKnow"><b>Did you know?</b> In 1800, William Herschel split sunlight with a prism and put thermometers in each colour. The one just beyond the red end, where he could see nothing, got hottest of all. He had discovered infrared. (A real rock would melt long before reaching the temperature of the Sun, so this one is imaginary!)</div>
+
+  <footer class="awm-footer">
+    <a href="/" target="_blank" rel="noopener noreferrer">More simulations</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://www.buymeacoffee.com/awmPhysics" target="_blank" rel="noopener noreferrer">Support the project ☕</a>
+    <span aria-hidden="true">·</span>
+    <a href="mailto:hello@alexmoorephysics.com">hello@alexmoorephysics.com</a>
+  </footer>
+</div>
+    <script type="module" src="/src/blackbody.js"></script>
+  </body>
+</html>
