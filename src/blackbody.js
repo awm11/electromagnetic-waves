@@ -553,7 +553,11 @@ import "./blackbody.css";
   function steppedAxis(curveMax) {
     const top = Math.max(curveMax, 1e-12) * AX_TOP, fit = DT.jumped; DT.jumped = false;
     if (!AX.to) { AX.from = AX.to = top; AX.t0 = -1; }
-    else if (top > AX.to * 1.0001) { AX.from = axisNow(); AX.to = fit ? top : top / AX_LOW; AX.t0 = time; }
+    else if (top > AX.to * 1.0001) {
+      // never further than the hottest temperature on the slider needs (its peak right at the top)
+      const most = rel(Math.max(STEP, peakNm(TMAX)), TMAX) * AX_TOP;
+      AX.from = axisNow(); AX.to = fit ? top : Math.min(top / AX_LOW, Math.max(top, most)); AX.t0 = time;
+    }
     else if (top < AX.to * AX_LOW) { AX.from = axisNow(); AX.to = top; AX.t0 = time; }
     return axisNow();
   }
