@@ -1,9 +1,11 @@
 /* Black body page: everything else comes from the shared style.css */
 .stage canvas#main { aspect-ratio: 1100 / 540; background: #0c1016; }
 .seg.fsBtn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
-.bbControls { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 12px; }
-.bbControls .toggles { gap: 8px 22px; }
-.bbControls .toggles .status { margin-left: auto; }
+/* ".controls.bbControls" (two classes) so these win over the shared .controls rules, whatever order the build puts them in */
+.controls.bbControls { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-items: center; gap: 12px; }
+.controls.bbControls > * { width: 100%; min-width: 0; }
+.controls.bbControls .toggles { gap: 8px 22px; }
+.controls.bbControls .toggles .status { margin-left: auto; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
 .tempRow .barLabel { margin-right: 0; flex: 0 0 auto; white-space: nowrap; }
 .tRead { flex: 0 0 auto; min-width: 190px; white-space: nowrap; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -27,7 +29,8 @@
 }
 @media (max-width: 760px) {
   .seg.fsBtn { margin-left: 0; }
-  .bbControls .toggles .status { margin-left: 0; }
+  .controls.bbControls { flex-direction: initial; align-items: center; }
+  .controls.bbControls .toggles .status { margin-left: 0; }
   .tRead { min-width: 0; }
 }
 #gogTog.on { background: #2d9b55; }
