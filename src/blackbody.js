@@ -530,11 +530,28 @@ import "./blackbody.css";
   // curve grow and shrink, and only rescales (animated over 0.5 s) when it has to. Heating: when the peak reaches the
   // top, the axis grows so the peak drops to a fifth of the height, ready to grow again. Cooling: when the peak falls
   // below a fifth of the height, the axis shrinks so the peak sits right at the top again.
-  const AX = { from: 0, to: 0, t0: -1, dur: 0.5 }, AX_LOW = 0.2, AX_TOP = 1.03;
+  // A jump in temperature (a preset button) happens in two steps: first the curve grows or shrinks to its new
+  // size on the old scale (it may shoot off the top), then the scale changes to fit it. Dragging the slider moves
+  // the curve directly, and the scale changes only when it has to.
+  const AX = { from: 0, to: 0, t0: -1, dur: 0.6 }, AX_LOW = 0.2, AX_TOP = 1.03;
+  const DT = { cur: null, from: 0, to: 0, t0: -1, dur: 0.6, jumped: false };
+  function shownT() {
+    if (DT.cur === null) DT.cur = DT.to = T;
+    if (T !== DT.to) {
+      if (DT.t0 < 0 && Math.abs(Math.log(T / DT.cur)) < 0.03) DT.cur = DT.to = T; // a small slider step
+      else { DT.from = DT.cur; DT.to = T; DT.t0 = time; }
+    }
+    if (DT.t0 >= 0) {
+      const f = Math.min(1, (time - DT.t0) / DT.dur), e = f < 0.5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2;
+      DT.cur = DT.from * (DT.to / DT.from) ** e;
+      if (f >= 1) { DT.cur = DT.to; DT.t0 = -1; DT.jumped = true; }
+    }
+    return DT.cur;
+  }
   function steppedAxis(curveMax) {
-    const top = Math.max(curveMax, 1e-12) * AX_TOP;
+    const top = Math.max(curveMax, 1e-12) * AX_TOP, fit = DT.jumped; DT.jumped = false;
     if (!AX.to) { AX.from = AX.to = top; AX.t0 = -1; }
-    else if (top > AX.to * 1.0001) { AX.from = axisNow(); AX.to = top / AX_LOW; AX.t0 = time; }
+    else if (top > AX.to * 1.0001) { AX.from = axisNow(); AX.to = fit ? top : top / AX_LOW; AX.t0 = time; }
     else if (top < AX.to * AX_LOW) { AX.from = axisNow(); AX.to = top; AX.t0 = time; }
     return axisNow();
   }
@@ -551,10 +568,13 @@ import "./blackbody.css";
     const real = scale === "sun" || scale === "dynamic";
     const refT = PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => Math.abs(Math.log(t / T)) > 0.03);
     const shown = [T, ...refT];
+    // the temperature the curve is drawn at: on the dynamic scale it moves to a new temperature over 0.6 s
+    const Td = scale === "dynamic" ? shownT() : (DT.cur = null, T);
     let yMax, yMin = 0, Y;
     if (real) {
       const top = t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t);
-      if (scale === "sun") { yMax = Math.max(...shown.map(top)) * 1.08; AX.to = 0; } else yMax = steppedAxis(top(T));
+      if (scale === "sun") { yMax = Math.max(...shown.map(top)) * 1.08; AX.to = 0; }
+      else yMax = DT.t0 >= 0 ? axisNow() : steppedAxis(top(Td)); // hold the scale while the curve changes size
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
       yMin = LMIN; yMax = LMAX;
@@ -615,10 +635,11 @@ import "./blackbody.css";
       mx.setLineDash([6, 5]); mx.strokeStyle = "#98a3b0"; mx.lineWidth = 1.6; mx.beginPath();
       pts.forEach(([nm, r], i) => { const y = Math.max(G.t - 40, yN(r, t)); i ? mx.lineTo(gx(nm), y) : mx.moveTo(gx(nm), y); }); mx.stroke(); mx.setLineDash([]);
     });
-    // the current curve, filled with the colours it contains
-    const pts = curve(T);
+    // the current curve, filled with the colours it contains; it may rise above the plot while the scale catches up
+    mx.restore(); mx.save(); mx.beginPath(); mx.rect(G.l, 32, G.r - G.l, G.b - 32); mx.clip();
+    const pts = curve(Td);
     mx.beginPath(); mx.moveTo(gx(STEP), G.b);
-    pts.forEach(([nm, r]) => mx.lineTo(gx(nm), Math.max(G.t - 40, yN(r, T))));
+    pts.forEach(([nm, r]) => mx.lineTo(gx(nm), Math.max(32, yN(r, Td))));
     mx.lineTo(gx(G.lmax), G.b); mx.closePath();
     const fg = mx.createLinearGradient(G.l, 0, G.r, 0);
     for (let nm = 0; nm <= G.lmax; nm += 25) {
@@ -628,7 +649,7 @@ import "./blackbody.css";
     }
     mx.fillStyle = fg; mx.fill();
     mx.strokeStyle = "#202020"; mx.lineWidth = 2.6; mx.beginPath();
-    pts.forEach(([nm, r], i) => { const y = Math.max(G.t - 40, yN(r, T)); i ? mx.lineTo(gx(nm), y) : mx.moveTo(gx(nm), y); }); mx.stroke();
+    pts.forEach(([nm, r], i) => { const y = Math.max(32, yN(r, Td)); i ? mx.lineTo(gx(nm), y) : mx.moveTo(gx(nm), y); }); mx.stroke();
     mx.restore();
 
     // labels for the comparison curves, at their peaks (or where they leave the graph)
@@ -640,9 +661,9 @@ import "./blackbody.css";
     });
 
     // the peak of the current curve (Wien's law)
-    const pk = peakNm(T);
+    const pk = peakNm(Td);
     if (pk <= G.lmax) {
-      const x = gx(pk), y = Math.max(G.t, yN(rel(pk, T), T));
+      const x = gx(pk), y = Math.max(G.t, yN(rel(pk, Td), Td));
       mx.setLineDash([4, 4]); mx.strokeStyle = "#2166d1"; mx.lineWidth = 1.4; mx.beginPath(); mx.moveTo(x, y); mx.lineTo(x, G.b); mx.stroke(); mx.setLineDash([]);
       // the label sits on the dashed line, well below the peak, so the top of the curve stays visible
       const yl = G.b - y > 80 ? y + Math.max(36, 0.4 * (G.b - y)) : y - 18;
@@ -650,7 +671,7 @@ import "./blackbody.css";
     } else {
       pill(`peak at ${(pk / 1000).toFixed(1)} µm, off the graph →`, G.r - 4, G.b - 22, { dark: false, align: "right", color: "#2166d1" });
     }
-    if (real && rel(Math.min(G.lmax, pk), T) < 0.03 * yMax)
+    if (real && DT.t0 < 0 && rel(Math.min(G.lmax, pk), Td) < 0.03 * yMax)
       pill(`The ${fmtC(T)} curve is too small to see on this scale`, (G.l + G.r) / 2, G.b - 60, { dark: false, color: "#202020" });
     // caption
     const cap = scale === "sun" ? "The Sun scale: real heights, compared with the Sun. Hotter objects give out vastly more."
