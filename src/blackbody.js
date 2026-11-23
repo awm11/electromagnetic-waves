@@ -45,7 +45,9 @@ import "./blackbody.css";
   // the spectrum to give a smooth rainbow.
   const SPEC = [], HUE = [], LIN = [];
   for (let nm = 380; nm <= 740; nm++) {
-    const c = toLin(cie(nm)).map(k => Math.max(0, k)), M = Math.max(...c) || 1;
+    // Deep red (650 nm and beyond) is pure red to the eye. The fitted colour-matching curves drift to orange and
+    // then green past about 680 nm, which is an artefact of the fit, so the red end is pinned to pure red.
+    const c = nm >= 650 ? [1, 0, 0] : toLin(cie(nm)).map(k => Math.max(0, k)), M = Math.max(...c) || 1;
     LIN.push(c.map(k => k / M));
   }
   const SIG = 11;
@@ -56,7 +58,8 @@ import "./blackbody.css";
       acc[0] += LIN[k][0] * w; acc[1] += LIN[k][1] * w; acc[2] += LIN[k][2] * w; wt += w;
     }
     const M = Math.max(...acc) || 1, nm = 380 + i;
-    const f = nm < 445 ? smooth((nm - 395) / 50) : nm > 650 ? smooth((740 - nm) / 90) : 1;
+    // fade out at the ends, within 400–700 nm, where the screen gives the visible light plenty of room
+    const f = nm < 445 ? smooth((nm - 395) / 50) : nm > 625 ? smooth((710 - nm) / 85) : 1;
     HUE.push(acc.map(k => enc(k / M)));
     SPEC.push(HUE[i].map(k => k * f));
   }
@@ -105,7 +108,7 @@ import "./blackbody.css";
     if (nm < 400 && ugog) return uvRGB(bright(rel(nm, T)));
     if (nm < 380 || nm > 740) return [0, 0, 0];
     const v = bright(rel(nm, T)), c = specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
-    return c.map(k => { const o = k * v; return o + w * (1 - o) * Math.min(1, k * 3); });
+    return c.map(k => { const o = k * v; return o + w * (1 - o) * k; });
   }
   const css = (c, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`;
 
