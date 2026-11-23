@@ -554,9 +554,10 @@ import "./blackbody.css";
     const top = Math.max(curveMax, 1e-12) * AX_TOP, fit = DT.jumped; DT.jumped = false;
     if (!AX.to) { AX.from = AX.to = top; AX.t0 = -1; }
     else if (top > AX.to * 1.0001) {
-      // never further than the hottest temperature on the slider needs (its peak right at the top)
-      const most = rel(Math.max(STEP, peakNm(TMAX)), TMAX) * AX_TOP;
-      AX.from = axisNow(); AX.to = fit ? top : Math.min(top / AX_LOW, Math.max(top, most)); AX.t0 = time;
+      // never further than 2,000 (just above the 10,000 °C peak at about 1,770), and round up to it near the top
+      let to = fit ? top : top / AX_LOW;
+      if (to > 1500) to = Math.max(2000, top);
+      AX.from = axisNow(); AX.to = to; AX.t0 = time;
     }
     else if (top < AX.to * AX_LOW) { AX.from = axisNow(); AX.to = top; AX.t0 = time; }
     return axisNow();
@@ -633,10 +634,6 @@ import "./blackbody.css";
     mx.save(); mx.translate(28, (G.t + G.b) / 2); mx.rotate(-Math.PI / 2); mx.textBaseline = "middle";
     mx.fillText(real ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
 
-    // thermometer position
-    const xth = gx(TH_NM);
-    mx.setLineDash([3, 4]); mx.strokeStyle = "rgba(216,38,42,0.55)"; mx.lineWidth = 1.2; mx.beginPath(); mx.moveTo(xth, G.t + 22); mx.lineTo(xth, G.b); mx.stroke(); mx.setLineDash([]);
-    mx.font = `700 11px ${FONT}`; mx.fillStyle = "#b8282b"; mx.textAlign = "center"; mx.textBaseline = "top"; mx.fillText("thermometer", xth, G.t + 6);
 
     mx.save(); mx.beginPath(); mx.rect(G.l, G.t - 2, G.r - G.l, G.b - G.t + 2); mx.clip();
     // comparison curves
