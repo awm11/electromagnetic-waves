@@ -109,8 +109,11 @@ import "./blackbody.css";
   function screenRGB(nm, T, gog, ugog, wIr, wUv) {
     const v = bright(rel(nm, T));
     let out = [0, 0, 0];
-    if (nm >= 380 && nm <= 740) {
-      const c = specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
+    // With ultraviolet goggles on, the violet end is not faded out to black first, but runs on at full strength
+    // and crossfades straight into the false colour. (The red end fades as normal before the infrared appears.)
+    const uvSide = ugog && nm < 445;
+    if ((nm >= 380 && nm <= 740) || uvSide) {
+      const c = uvSide ? HUE[Math.max(0, Math.round(nm) - 380)] : specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
       out = c.map(k => { const o = k * v; return o + w * (1 - o) * k; });
     }
     // crossfade (rather than add) so the overlap doesn't turn a muddy dark brown
