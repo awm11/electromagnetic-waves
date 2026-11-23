@@ -654,7 +654,7 @@ import "./blackbody.css";
     // caption
     const cap = scale === "sun" ? "The Sun scale: real heights, compared with the Sun. Hotter objects give out vastly more."
       : scale === "dynamic" ? "Dynamic scale: real heights. The scale stays put as the curve grows, and changes when it must."
-      : scale === "log" ? "Squashed scale: each gridline up is 10 times more. The brightness on the screen uses this scale."
+      : scale === "log" ? "Logarithmic scale: each gridline up is 10 times more. The brightness on the screen uses this scale."
       : "Same peak height: every curve is stretched to the same height, to compare their shapes and peaks.";
     mx.font = `600 13px ${FONT}`; mx.fillStyle = "#59636f"; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(cap, G.l, 22);
     pill(fmtC(T), G.r, 22, { dark: false, align: "right" });
