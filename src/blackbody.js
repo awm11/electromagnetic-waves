@@ -566,7 +566,9 @@ import "./blackbody.css";
     if (pk <= G.lmax) {
       const x = gx(pk), y = Math.max(G.t, yN(rel(pk, T), T));
       mx.setLineDash([4, 4]); mx.strokeStyle = "#2166d1"; mx.lineWidth = 1.4; mx.beginPath(); mx.moveTo(x, y); mx.lineTo(x, G.b); mx.stroke(); mx.setLineDash([]);
-      pill(`peak at ${pk < 1000 ? Math.round(pk) + " nm" : (pk / 1000).toFixed(2) + " µm"}`, x, Math.max(G.t + 30, y - 16), { dark: false, color: "#2166d1" });
+      // the label sits on the dashed line, well below the peak, so the top of the curve stays visible
+      const yl = G.b - y > 80 ? y + Math.max(36, 0.4 * (G.b - y)) : y - 18;
+      pill(`peak at ${pk < 1000 ? Math.round(pk) + " nm" : (pk / 1000).toFixed(2) + " µm"}`, x, yl, { dark: false, color: "#2166d1" });
     } else {
       pill(`peak at ${(pk / 1000).toFixed(1)} µm, off the graph →`, G.r - 4, G.b - 22, { dark: false, align: "right", color: "#2166d1" });
     }
