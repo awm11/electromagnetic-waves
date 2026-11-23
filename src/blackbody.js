@@ -125,7 +125,7 @@ import "./blackbody.css";
   const css = (c, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`;
 
   // ================= State =================
-  let T = 900 + K0, view = "prism", gog = false, ugog = false, scale = "true", refs = true, thT = 20, time = 0;
+  let T = 900 + K0, view = "prism", gog = false, ugog = false, scale = "sun", thT = 20, time = 0;
   const PRESETS = [
     [20, "room temperature"], [300, "a hot plate"], [900, "red-hot coal"], [1400, "a candle flame"],
     [2500, "a lamp filament"], [5500, "the surface of the Sun"], [10000, "a hot blue star"]];
@@ -546,12 +546,14 @@ import "./blackbody.css";
   }
   function drawGraph() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
+    // The dynamic scale shows the rock's curve alone; every other scale compares it with coal, candle, lamp and Sun.
+    const real = scale === "sun" || scale === "dynamic", refs = scale !== "dynamic";
     const refT = refs ? PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => Math.abs(Math.log(t / T)) > 0.03) : [];
     const shown = [T, ...refT];
     let yMax, yMin = 0, Y;
-    if (scale === "true") {
+    if (real) {
       const hi = Math.max(...shown.map(t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t)));
-      if (refs) { yMax = hi * 1.08; AX.to = 0; } else yMax = steppedAxis(hi);
+      if (scale === "sun") { yMax = hi * 1.08; AX.to = 0; } else yMax = steppedAxis(hi);
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
       yMin = LMIN; yMax = LMAX;
@@ -598,7 +600,7 @@ import "./blackbody.css";
     mx.strokeStyle = "#202020"; mx.lineWidth = 1.5; mx.beginPath(); mx.moveTo(G.l, G.t - 6); mx.lineTo(G.l, G.b); mx.lineTo(G.r + 6, G.b); mx.stroke();
     mx.font = `700 13px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, G.sy1 + 10);
     mx.save(); mx.translate(28, (G.t + G.b) / 2); mx.rotate(-Math.PI / 2); mx.textBaseline = "middle";
-    mx.fillText(scale === "true" ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
+    mx.fillText(real ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
 
     // thermometer position
     const xth = gx(TH_NM);
@@ -647,10 +649,11 @@ import "./blackbody.css";
     } else {
       pill(`peak at ${(pk / 1000).toFixed(1)} µm, off the graph →`, G.r - 4, G.b - 22, { dark: false, align: "right", color: "#2166d1" });
     }
-    if (scale === "true" && rel(Math.min(G.lmax, pk), T) < 0.03 * yMax)
+    if (real && rel(Math.min(G.lmax, pk), T) < 0.03 * yMax)
       pill(`The ${fmtC(T)} curve is too small to see on this scale`, (G.l + G.r) / 2, G.b - 60, { dark: false, color: "#202020" });
     // caption
-    const cap = scale === "true" ? "True scale: the height shows how much radiation is given out at each wavelength."
+    const cap = scale === "sun" ? "The Sun scale: real heights, compared with the Sun. Hotter objects give out vastly more."
+      : scale === "dynamic" ? "Dynamic scale: real heights. The scale stays put as the curve grows, and changes when it must."
       : scale === "log" ? "Squashed scale: each gridline up is 10 times more. The brightness on the screen uses this scale."
       : "Same peak height: every curve is stretched to the same height, to compare their shapes and peaks.";
     mx.font = `600 13px ${FONT}`; mx.fillStyle = "#59636f"; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(cap, G.l, 22);
@@ -693,8 +696,6 @@ import "./blackbody.css";
   gogBtn.addEventListener("click", () => { gog = !gog; gogBtn.setAttribute("aria-pressed", gog); document.getElementById("gogTog").classList.toggle("on", gog); });
   const uvBtn = document.getElementById("uvBtn");
   uvBtn.addEventListener("click", () => { ugog = !ugog; uvBtn.setAttribute("aria-pressed", ugog); document.getElementById("uvTog").classList.toggle("on", ugog); });
-  const refBtn = document.getElementById("refBtn");
-  refBtn.addEventListener("click", () => { refs = !refs; refBtn.setAttribute("aria-pressed", refs); document.getElementById("refTog").classList.toggle("on", refs); });
   document.querySelectorAll("[data-scale]").forEach(b => b.addEventListener("click", () => {
     scale = b.dataset.scale; document.querySelectorAll("[data-scale]").forEach(x => x.classList.toggle("on", x === b));
   }));

@@ -50,11 +50,11 @@
         <button class="switchBtn" id="uvBtn" aria-pressed="false" title="See the ultraviolet in false colour"><span class="toggle" id="uvTog"><span class="knob"></span></span>Ultraviolet goggles</button>
         <span class="graphOnly btnRow" role="group" aria-label="Scale of the graph" hidden>
           <span class="barLabel">Graph scale</span>
-          <button class="seg on" data-scale="true" title="The real heights: hotter objects give out vastly more">True scale</button>
+          <button class="seg on" data-scale="sun" title="Real heights, compared with coal, a candle, a lamp and the Sun">The Sun scale</button>
+          <button class="seg" data-scale="dynamic" title="Real heights for the rock alone; the scale holds steady, then changes when the curve outgrows it">Dynamic scale</button>
           <button class="seg" data-scale="log" title="Each gridline up is 10 times more, just like the brightness on the screen">Squashed, like the screen</button>
           <button class="seg" data-scale="norm" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
         </span>
-        <button class="switchBtn graphOnly" id="refBtn" aria-pressed="true" hidden><span class="toggle on" id="refTog"><span class="knob"></span></span>Compare temperatures</button>
       </div>
       <div class="status"><span class="dot on" id="dot"></span><span id="statusText"></span></div>
     </div>
