@@ -339,8 +339,11 @@ import "./blackbody.css";
 
     // screen labels and wavelength marks
     mx.save(); mx.font = `700 12px ${FONT}`; mx.textAlign = "center"; mx.textBaseline = "middle";
+    const pkNm = peakNm(T), uPk = pkNm <= 3500 ? uAt(pkNm) : null;
     [["ultraviolet", (0 + 0.13) / 2], ["visible light", (0.13 + 0.5) / 2], ["infrared", 0.75]].forEach(([t, u]) => {
-      const p = Pv(onScreen(u, BH + BAND + 2.6)); mx.fillStyle = "rgba(205,215,228,0.85)"; mx.fillText(t, p[0], p[1]);
+      // a label fades back where the "peak radiation" arrow passes through it
+      const near = uPk !== null && Math.abs(u - uPk) < 0.07;
+      const p = Pv(onScreen(u, BH + BAND + 2.6)); mx.fillStyle = `rgba(205,215,228,${near ? 0.3 : 0.85})`; mx.fillText(t, p[0], p[1]);
     });
     mx.font = `600 10.5px ${FONT}`;
     [[400, "400 nm"], [700, "700 nm"], [1500, "1.5 µm"], [2000, "2 µm"], [2500, "2.5 µm"], [3000, "3 µm"]].forEach(([nm, t]) => {
@@ -350,6 +353,7 @@ import "./blackbody.css";
     });
     mx.restore();
 
+    drawPeakArrow(uPk);
     drawThermometer(dt);
 
     // prism on a little stand
@@ -410,6 +414,25 @@ import "./blackbody.css";
     }
     const pre = nearest();
     pill(`Rock: ${fmtC(T)}` + (pre ? `  ·  about as hot as ${pre}` : ""), 16, 24, { align: "left" });
+  }
+
+  // A subtle arrow on the screen, pointing down at the peak of the spectrum (Wien's law), visible or not.
+  function drawPeakArrow(u) {
+    mx.save(); mx.font = `700 11px ${FONT}`; mx.textAlign = "center"; mx.textBaseline = "bottom";
+    const col = "rgba(235,240,248,0.6)";
+    if (u === null) { // cooler than about 550 °C: the peak is further into the infrared than the screen reaches
+      const p = Pv(onScreen(0.875, BH + BAND + 9));
+      mx.fillStyle = col; mx.textAlign = "right"; mx.fillText("peak radiation: beyond the screen →", p[0], p[1]);
+      mx.restore(); return;
+    }
+    const tip = Pv(onScreen(u, BH + BAND + 0.6)), tail = Pv(onScreen(u, BH + BAND + 7));
+    const dx = tip[0] - tail[0], dy = tip[1] - tail[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, hs = 6;
+    mx.strokeStyle = col; mx.fillStyle = col; mx.lineWidth = 1.6; mx.lineCap = "round";
+    mx.beginPath(); mx.moveTo(tail[0], tail[1]); mx.lineTo(tip[0] - ux * hs, tip[1] - uy * hs); mx.stroke();
+    mx.beginPath(); mx.moveTo(tip[0], tip[1]); mx.lineTo(tip[0] - ux * hs - uy * hs * 0.6, tip[1] - uy * hs + ux * hs * 0.6);
+    mx.lineTo(tip[0] - ux * hs + uy * hs * 0.6, tip[1] - uy * hs - ux * hs * 0.6); mx.closePath(); mx.fill();
+    mx.fillText("peak radiation", tail[0], tail[1] - 3);
+    mx.restore();
   }
 
   function drawBeam(a3, b3, c, alpha, extras) {
