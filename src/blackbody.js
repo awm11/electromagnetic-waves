@@ -517,7 +517,9 @@ import "./blackbody.css";
   }
 
   // ================= The graph =================
+  // the plot's bottom edge moves down to use the space when the screen strip is hidden
   const G = { l: 92, r: 1062, t: 62, b: 400, sy0: 440, sy1: 482, lmax: 3500 };
+  let showScr = false;
   const gx = nm => G.l + (G.r - G.l) * nm / G.lmax;
   const STEP = 5;
   function curve(Tk) { const pts = []; for (let nm = STEP; nm <= G.lmax; nm += STEP) pts.push([nm, rel(nm, Tk)]); return pts; }
@@ -563,6 +565,7 @@ import "./blackbody.css";
   }
   function drawGraph() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
+    G.b = showScr ? 400 : 476;
     // Every scale compares the rock's curve with coal, candle, lamp and Sun (dashed). On the dynamic scale the axis
     // follows the rock's curve alone, so the comparison curves can run off the top.
     const real = scale === "sun" || scale === "dynamic";
@@ -622,7 +625,7 @@ import "./blackbody.css";
       mx.fillStyle = "#59636f"; mx.fillText((nm / 1000).toFixed(1), x, G.b + 8);
     }
     mx.strokeStyle = "#202020"; mx.lineWidth = 1.5; mx.beginPath(); mx.moveTo(G.l, G.t - 6); mx.lineTo(G.l, G.b); mx.lineTo(G.r + 6, G.b); mx.stroke();
-    mx.font = `700 13px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, G.sy1 + 10);
+    mx.font = `700 13px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, showScr ? G.sy1 + 10 : G.b + 30);
     mx.save(); mx.translate(28, (G.t + G.b) / 2); mx.rotate(-Math.PI / 2); mx.textBaseline = "middle";
     mx.fillText(real ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
 
@@ -684,7 +687,8 @@ import "./blackbody.css";
     mx.font = `600 13px ${FONT}`; mx.fillStyle = "#59636f"; mx.textAlign = "left"; mx.textBaseline = "middle"; mx.fillText(cap, G.l, 22);
     pill(fmtC(T), G.r, 22, { dark: false, align: "right" });
 
-    // the screen, laid out on the same wavelength scale as the graph
+    // the screen, laid out on the same wavelength scale as the graph (if shown)
+    if (!showScr) return;
     const key = T.toFixed(1) + gog + ugog;
     if (key !== linKey) {
       linKey = key; const n = Math.round(G.r - G.l);
@@ -717,6 +721,8 @@ import "./blackbody.css";
   // the slider's track shows the colour of the glow at each temperature
   slider.style.setProperty("--track", `linear-gradient(90deg, ${Array.from({ length: 13 }, (_, k) => { const b = BB[Math.round(k / 12 * (NT - 1))]; const lit = b.rgb.map(c => 0.16 + 0.84 * c * b.v); return css(lit) + ` ${(k / 12 * 100).toFixed(1)}%`; }).join(", ")})`);
 
+  const scrBtn = document.getElementById("scrBtn");
+  scrBtn.addEventListener("click", () => { showScr = !showScr; scrBtn.setAttribute("aria-pressed", showScr); document.getElementById("scrTog").classList.toggle("on", showScr); });
   const gogBtn = document.getElementById("gogBtn");
   gogBtn.addEventListener("click", () => { gog = !gog; gogBtn.setAttribute("aria-pressed", gog); document.getElementById("gogTog").classList.toggle("on", gog); });
   const uvBtn = document.getElementById("uvBtn");
