@@ -109,12 +109,8 @@ import "./blackbody.css";
   function screenRGB(nm, T, gog, ugog, wIr, wUv) {
     const v = bright(rel(nm, T));
     let out = [0, 0, 0];
-    // With goggles on, the red (or violet) end is not faded out to black first, but runs on at full strength
-    // and crossfades straight into the false colour, so there is no dark gap between them.
-    const irSide = gog && nm > 625, uvSide = ugog && nm < 445;
-    if ((nm >= 380 && nm <= 740) || irSide || uvSide) {
-      const n = Math.max(380, Math.min(740, Math.round(nm)));
-      const c = irSide || uvSide ? HUE[n - 380] : specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
+    if (nm >= 380 && nm <= 740) {
+      const c = specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
       out = c.map(k => { const o = k * v; return o + w * (1 - o) * k; });
     }
     // crossfade (rather than add) so the overlap doesn't turn a muddy dark brown
