@@ -357,19 +357,25 @@ import "./blackbody.css";
     face(corners, "#08090b", "rgba(120,132,148,0.55)", 1.2);                    // the dark face
     void sl; void sr;
 
-    // light passing through the air: a faint fan from the prism to the screen
     buildStrip();
+    drawStrip();
+    // light passing through the air: a faint fan from the prism to the screen. It is drawn over the spectrum so each
+    // ray visibly reaches its own colour, and fades out inside the band (the fade runs parallel to the band, so it
+    // leaves no edge or sawtooth across the spectrum).
     mx.save(); mx.globalCompositeOperation = "lighter";
     const E = Pv(EXIT), NF = 40;
     for (let k = 0; k < NF; k++) {
       const um = (k + 0.5) / NF, c = cols[Math.floor(um * SPX)];
       if (c[0] + c[1] + c[2] < 0.01) continue;
-      const a = Pv(onScreen(k / NF, BH + BAND * 0.5)), b = Pv(onScreen((k + 1) / NF, BH + BAND * 0.5)), a2 = Pv(onScreen(k / NF, BH - BAND * 0.5)), b2 = Pv(onScreen((k + 1) / NF, BH - BAND * 0.5));
-      mx.fillStyle = css(c, 0.16);
-      mx.beginPath(); mx.moveTo(E[0], E[1]); mx.lineTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.lineTo(b2[0], b2[1]); mx.lineTo(a2[0], a2[1]); mx.closePath(); mx.fill();
+      const a = Pv(onScreen(k / NF, BH)), b = Pv(onScreen((k + 1) / NF, BH));
+      const lo = Pv(onScreen(um, BH - BAND)), hi = Pv(onScreen(um, BH - BAND * 0.2));
+      const g = mx.createLinearGradient(lo[0], lo[1], hi[0], hi[1]);
+      g.addColorStop(0, css(c, 0.16)); g.addColorStop(1, css(c, 0));
+      mx.fillStyle = g;
+      mx.beginPath(); mx.moveTo(E[0], E[1]); mx.lineTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.closePath(); mx.fill();
     }
     mx.restore();
-    drawStrip();
+
 
     // screen labels and wavelength marks
     mx.save(); mx.font = `700 12px ${FONT}`; mx.textAlign = "center"; mx.textBaseline = "middle";
