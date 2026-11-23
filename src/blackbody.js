@@ -26,7 +26,11 @@ import "./blackbody.css";
   // it gets from the room). Scaled so a red-hot coal (900 °C) warms it by 1 °C; then the Sun gives about +45 °C.
   const TH_NM = 3000;
   const TH_GAIN = 1 / (planck(TH_NM, 900 + K0) - planck(TH_NM, TROOM));
-  const thTarget = T => 20 + TH_GAIN * (planck(TH_NM, T) - planck(TH_NM, TROOM));
+  // That honest scale leaves cooler rocks barely moving it, so the rise is cheated upwards for low temperatures:
+  // the same order, the same top (10,000 °C still gives about +99 °C), but small rises are boosted (rise^0.55).
+  const thRise = T => Math.max(0, TH_GAIN * (planck(TH_NM, T) - planck(TH_NM, TROOM)));
+  const TH_TOP = thRise(TMAX);
+  const thTarget = T => 20 + TH_TOP * (thRise(T) / TH_TOP) ** 0.55;
 
   // ================= Colour =================
   // CIE 1931 colour matching functions (multi-lobe Gaussian fit, Wyman, Sloan & Shirley 2013), XYZ → sRGB.
