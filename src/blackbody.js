@@ -566,8 +566,8 @@ import "./blackbody.css";
     // Every scale compares the rock's curve with coal, candle, lamp and Sun (dashed). On the dynamic scale the axis
     // follows the rock's curve alone, so the comparison curves can run off the top.
     const real = scale === "sun" || scale === "dynamic";
-    // (except on the dynamic scale, a comparison curve is left out when the rock is at that same temperature)
-    const refT = PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => scale === "dynamic" || Math.abs(Math.log(t / T)) > 0.03);
+    // The comparison curves are always drawn, even when the rock is at one of those temperatures.
+    const refT = PRESETS.slice(2, 6).map(p => p[0] + K0);
     const shown = [T, ...refT];
     // the temperature the curve is drawn at: on the dynamic scale it moves to a new temperature over 0.6 s
     const Td = scale === "dynamic" ? shownT() : (DT.cur = null, T);
