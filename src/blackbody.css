@@ -4,11 +4,11 @@
 .bbControls { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 12px; }
 .bbControls .toggles { gap: 8px 22px; }
 .bbControls .toggles .status { margin-left: auto; }
-.tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.tempRow .barLabel { margin-right: 0; }
-.tRead { min-width: 190px; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
+.tempRow .barLabel { margin-right: 0; flex: 0 0 auto; white-space: nowrap; }
+.tRead { flex: 0 0 auto; min-width: 190px; white-space: nowrap; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .tRead small { color: var(--muted); font-weight: 600; font-size: 13px; margin-left: 4px; }
-#tSlider { flex: 1 1 320px; min-width: 200px; height: 30px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+#tSlider { flex: 1 1 auto; min-width: 90px; height: 30px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
 #tSlider::-webkit-slider-runnable-track { height: 12px; border-radius: 99px; background: var(--track, #ccc); border: 1px solid var(--line-strong); }
 #tSlider::-moz-range-track { height: 12px; border-radius: 99px; background: var(--track, #ccc); border: 1px solid var(--line-strong); }
 #tSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -8px; border-radius: 50%; background: #fff; border: 2px solid var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
@@ -24,6 +24,9 @@
   .seg.fsBtn { margin-left: 0; }
   .bbControls .toggles .status { margin-left: 0; }
   .tRead { min-width: 0; }
+  /* on a phone the label takes its own line, so the slider and its reading still share one */
+  .tempRow { flex-wrap: wrap; row-gap: 4px; }
+  .tempRow .barLabel { flex-basis: 100%; }
 }
 #gogTog.on { background: #2d9b55; }
 #uvTog.on { background: #1b9fc4; }
