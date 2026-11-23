@@ -574,7 +574,9 @@ import "./blackbody.css";
     let yMax, yMin = 0, Y;
     if (real) {
       const top = t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t);
-      if (scale === "sun") { yMax = Math.max(...shown.map(top)) * 1.08; AX.to = 0; }
+      // fitted to the rock and all four comparison temperatures, including any hidden because the rock is at that
+      // temperature, so the axis doesn't jump when a dashed curve appears or disappears
+      if (scale === "sun") { yMax = Math.max(top(T), ...PRESETS.slice(2, 6).map(p => top(p[0] + K0))) * 1.08; AX.to = 0; }
       else yMax = DT.t0 >= 0 ? axisNow() : steppedAxis(top(Td)); // hold the scale while the curve changes size
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
