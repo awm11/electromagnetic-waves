@@ -546,14 +546,15 @@ import "./blackbody.css";
   }
   function drawGraph() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
-    // The dynamic scale shows the rock's curve alone; every other scale compares it with coal, candle, lamp and Sun.
-    const real = scale === "sun" || scale === "dynamic", refs = scale !== "dynamic";
-    const refT = refs ? PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => Math.abs(Math.log(t / T)) > 0.03) : [];
+    // Every scale compares the rock's curve with coal, candle, lamp and Sun (dashed). On the dynamic scale the axis
+    // follows the rock's curve alone, so the comparison curves can run off the top.
+    const real = scale === "sun" || scale === "dynamic";
+    const refT = PRESETS.slice(2, 6).map(p => p[0] + K0).filter(t => Math.abs(Math.log(t / T)) > 0.03);
     const shown = [T, ...refT];
     let yMax, yMin = 0, Y;
     if (real) {
-      const hi = Math.max(...shown.map(t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t)));
-      if (scale === "sun") { yMax = hi * 1.08; AX.to = 0; } else yMax = steppedAxis(hi);
+      const top = t => rel(Math.min(G.lmax, Math.max(STEP, peakNm(t))), t);
+      if (scale === "sun") { yMax = Math.max(...shown.map(top)) * 1.08; AX.to = 0; } else yMax = steppedAxis(top(T));
       Y = r => G.b - (G.b - G.t) * r / yMax;
     } else if (scale === "log") {
       yMin = LMIN; yMax = LMAX;
@@ -683,7 +684,7 @@ import "./blackbody.css";
     tRead.innerHTML = `${fmtC(T)}<small>(${Math.round(T).toLocaleString("en-GB")} K)</small>`;
     const ratio = (T / TROOM) ** 4;
     statusText.textContent = ratio < 1.05 ? "Emits the same power as its surroundings"
-      : `Emits ${ratio < 100 ? ratio.toFixed(ratio < 10 ? 1 : 0) : Math.round(ratio).toLocaleString("en-GB", { maximumSignificantDigits: 3 })}× the power it did at 20 °C`;
+      : `Emits ${ratio.toLocaleString("en-GB", { maximumSignificantDigits: 2 })}× the power it did at 20 °C`;
     document.querySelectorAll("[data-t]").forEach(b => b.classList.toggle("on", Math.abs(+b.dataset.t + K0 - T) < 1));
   }
   function setT(Tk) { T = Math.max(TMIN, Math.min(TMAX, Tk)); slider.value = tToS(T); updateText(); }
