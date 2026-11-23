@@ -26,3 +26,5 @@
   .bbControls { display: flex; }
   .tRead { min-width: 0; }
 }
+#gogTog.on { background: #2d9b55; }
+#uvTog.on { background: #1b9fc4; }

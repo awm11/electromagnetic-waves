@@ -10,7 +10,7 @@ Interactive GCSE physics simulations, built with Vite and deployed to GitHub Pag
   - `#encoding` — AM and FM modulation, with a working decoder
   - `#sending-data` — send SOS at three carrier frequencies and two speeds to see why higher frequencies carry more data
 - `/infrared/` — emitting and absorbing infrared. Scenarios: `#banana` (cupboard), `#pottery` (kiln), `#bagel` (freezer), with matt black, grey and shiny silver surfaces.
-- `/black-body/` — black body radiation. A rock heated from 20 °C to 10 000 °C (log slider) shines through a hole onto a prism and a dark screen, with a thermometer in the infrared and infrared goggles. Views: `#prism` (prism and screen) and `#graph` (black body curve with true, squashed and same-peak-height scales).
+- `/black-body/` — black body radiation. A rock heated from 20 °C to 10 000 °C (log slider) shines through a hole onto a prism and a dark screen, with a thermometer in the infrared, plus infrared and ultraviolet goggles. Views: `#prism` (prism and screen) and `#graph` (black body curve with true, squashed and same-peak-height scales).
 
 ## Develop
 

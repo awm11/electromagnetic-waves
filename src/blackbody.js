@@ -61,6 +61,18 @@ import "./blackbody.css";
     return [1, 1, 1];
   }
 
+  // False colour for the ultraviolet goggles: icy cyan, brighter for more ultraviolet.
+  const UPAL = [[0, [0, 0, 0]], [0.2, [2, 26, 44]], [0.45, [10, 110, 150]], [0.7, [60, 210, 240]], [0.88, [180, 245, 255]], [1, [245, 253, 255]]];
+  function uvRGB(v) {
+    for (let i = 1; i < UPAL.length; i++) if (v <= UPAL[i][0]) {
+      const [a, ca] = UPAL[i - 1], [b, cb] = UPAL[i], f = (v - a) / (b - a);
+      return ca.map((c, k) => (c + (cb[k] - c) * f) / 255);
+    }
+    return [1, 1, 1];
+  }
+  const UV_NM = 330, IR_NM = 2000; // wavelengths used for how strongly the rock glows in each kind of goggles
+  const vIrOf = Tk => bright(rel(IR_NM, Tk)), vUvOf = Tk => bright(rel(UV_NM, Tk));
+
   // Colour and brightness of the glowing rock, tabulated against log T.
   const NT = 240, BB = [];
   const tAt = i => TMIN * (TMAX / TMIN) ** (i / (NT - 1));
@@ -77,8 +89,9 @@ import "./blackbody.css";
 
   // What one wavelength looks like on the screen at temperature T: its colour, scaled by the (squashed) intensity.
   // Very bright light also bleaches towards white, as it does to our eyes and to cameras.
-  function screenRGB(nm, T, gog) {
-    if (nm > 700 && gog) { const v = bright(rel(nm, T)); return irRGB(v); }
+  function screenRGB(nm, T, gog, ugog) {
+    if (nm > 700 && gog) return irRGB(bright(rel(nm, T)));
+    if (nm < 400 && ugog) return uvRGB(bright(rel(nm, T)));
     if (nm < 380 || nm > 740) return [0, 0, 0];
     const v = bright(rel(nm, T)), c = specRGB(nm), w = 0.5 * smooth((v - 0.72) / 0.28);
     return c.map(k => { const o = k * v; return o + w * (1 - o) * Math.min(1, k * 3); });
@@ -86,7 +99,7 @@ import "./blackbody.css";
   const css = (c, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`;
 
   // ================= State =================
-  let T = 900 + K0, view = "prism", gog = false, scale = "true", refs = true, thT = 20, time = 0;
+  let T = 900 + K0, view = "prism", gog = false, ugog = false, scale = "true", refs = true, thT = 20, time = 0;
   const PRESETS = [
     [20, "room temperature"], [300, "a hot plate"], [900, "red-hot coal"], [1400, "a candle flame"],
     [2500, "a lamp filament"], [5500, "the surface of the Sun"], [10000, "a hot blue star"]];
@@ -166,9 +179,9 @@ import "./blackbody.css";
   const sx = strip.getContext("2d"), cols = new Array(SPX);
   let stripKey = "";
   function buildStrip() {
-    const key = T.toFixed(1) + gog; if (key === stripKey) return; stripKey = key;
+    const key = T.toFixed(1) + gog + ugog; if (key === stripKey) return; stripKey = key;
     const img = sx.createImageData(SPX, SPY);
-    for (let i = 0; i < SPX; i++) cols[i] = screenRGB(lamAt((i + 0.5) / SPX), T, gog);
+    for (let i = 0; i < SPX; i++) cols[i] = screenRGB(lamAt((i + 0.5) / SPX), T, gog, ugog);
     for (let j = 0; j < SPY; j++) {
       const d = Math.abs((j + 0.5) / SPY - 0.5) * 2, p = 1 / (1 + Math.exp((d - 0.72) / 0.07));
       for (let i = 0; i < SPX; i++) {
@@ -194,32 +207,33 @@ import "./blackbody.css";
   }
 
   // ---- Light leaving the rock in all directions ----
-  const rays = []; let visAcc = 0, irAcc = 0;
-  function spawn(ir) {
+  const rays = []; let visAcc = 0, irAcc = 0, uvAcc = 0;
+  function spawn(k) {
     let dx, dy, dz, n;
     do { dx = Math.random() * 2 - 1; dy = Math.random() * 2 - 1; dz = Math.random() * 2 - 1; n = Math.hypot(dx, dy, dz); } while (n > 1 || n < 0.2);
     dx /= n; dy /= n; dz /= n;
-    rays.push({ p: [ROCK.x + dx * ROCK.r, ROCK.y + dy * ROCK.r, ROCK.z + dz * ROCK.r], d: [dx, dy, dz], s: 0, ir });
+    rays.push({ p: [ROCK.x + dx * ROCK.r, ROCK.y + dy * ROCK.r, ROCK.z + dz * ROCK.r], d: [dx, dy, dz], s: 0, k });
   }
   function updateRays(dt) {
-    const vVis = bbAt(T).v, vIr = bright(rel(2000, T));
-    visAcc += dt * 110 * smooth(vVis * 2.2); irAcc += dt * 110 * smooth(vIr * 1.6);
-    while (visAcc >= 1) { visAcc--; spawn(false); }
-    while (irAcc >= 1) { irAcc--; spawn(true); }
+    const vVis = bbAt(T).v, vIr = vIrOf(T), vUv = vUvOf(T);
+    visAcc += dt * 110 * smooth(vVis * 2.2); irAcc += dt * 110 * smooth(vIr * 1.6); uvAcc += dt * 110 * smooth(vUv * 1.6);
+    while (visAcc >= 1) { visAcc--; spawn("vis"); }
+    while (irAcc >= 1) { irAcc--; spawn("ir"); }
+    while (uvAcc >= 1) { uvAcc--; spawn("uv"); }
     for (let i = rays.length - 1; i >= 0; i--) {
       const r = rays[i], v = 70 * dt; r.p = add(r.p, r.d, v); r.s += v;
       if (r.s > 46 || r.p[0] > WALL.x0 || r.p[1] < 0.5) rays.splice(i, 1);
     }
   }
   function drawRays(front) {
-    const bb = bbAt(T), vVis = bb.v, vIr = bright(rel(2000, T));
+    const bb = bbAt(T), vVis = bb.v, vIr = vIrOf(T), vUv = vUvOf(T);
     mx.save(); mx.globalCompositeOperation = "lighter"; mx.lineCap = "round";
     for (const r of rays) {
-      if (r.ir && !gog) continue;
+      if ((r.k === "ir" && !gog) || (r.k === "uv" && !ugog)) continue;
       if ((r.p[2] > ROCK.z) !== front) continue;
       const a = Pv(r.p), b = Pv(add(r.p, r.d, -4.5)), fade = 1 - r.s / 46;
-      const c = r.ir ? irRGB(0.35 + 0.6 * vIr) : bb.rgb.map(k => k * (0.4 + 0.6 * vVis));
-      mx.strokeStyle = css(c, 0.85 * fade); mx.lineWidth = r.ir ? 1.6 : 2;
+      const c = r.k === "ir" ? irRGB(0.35 + 0.6 * vIr) : r.k === "uv" ? uvRGB(0.35 + 0.6 * vUv) : bb.rgb.map(k => k * (0.4 + 0.6 * vVis));
+      mx.strokeStyle = css(c, 0.85 * fade); mx.lineWidth = r.k === "vis" ? 2 : 1.6;
       mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
     }
     mx.restore();
@@ -239,7 +253,7 @@ import "./blackbody.css";
   }
   function drawRock() {
     const c = Pv([ROCK.x, ROCK.y, ROCK.z]), r = ROCK.r * c[3];
-    const bb = bbAt(T), v = bb.v, vIr = bright(rel(2000, T));
+    const bb = bbAt(T), v = bb.v, vIr = vIrOf(T), vUv = vUvOf(T);
     // halo of light all around
     mx.save(); mx.globalCompositeOperation = "lighter";
     if (v > 0) {
@@ -250,6 +264,11 @@ import "./blackbody.css";
     if (gog && vIr > 0.05) {
       const ic = irRGB(0.3 + 0.65 * vIr), g = mx.createRadialGradient(c[0], c[1], r * 0.6, c[0], c[1], r * (1.6 + 3 * vIr));
       g.addColorStop(0, css(ic, 0.6 * vIr)); g.addColorStop(1, css(ic, 0));
+      mx.fillStyle = g; mx.fillRect(c[0] - r * 6, c[1] - r * 6, r * 12, r * 12);
+    }
+    if (ugog && vUv > 0.05) {
+      const uc = uvRGB(0.3 + 0.65 * vUv), g = mx.createRadialGradient(c[0], c[1], r * 0.6, c[0], c[1], r * (1.6 + 3 * vUv));
+      g.addColorStop(0, css(uc, 0.6 * vUv)); g.addColorStop(1, css(uc, 0));
       mx.fillStyle = g; mx.fillRect(c[0] - r * 6, c[1] - r * 6, r * 12, r * 12);
     }
     mx.restore();
@@ -273,12 +292,13 @@ import "./blackbody.css";
       for (const cr of CRACKS) { mx.beginPath(); cr.forEach(([p, q], i) => i ? mx.lineTo(c[0] + p * r, c[1] + q * r) : mx.moveTo(c[0] + p * r, c[1] + q * r)); mx.stroke(); }
     }
     if (gog && vIr > 0.05) { mx.fillStyle = css(irRGB(0.3 + 0.65 * vIr), 0.55 * (1 - 0.7 * v)); mx.fillRect(c[0] - r * 2, c[1] - r * 2, r * 4, r * 4); }
+    if (ugog && vUv > 0.05) { mx.fillStyle = css(uvRGB(0.3 + 0.65 * vUv), 0.45 * (1 - 0.6 * v)); mx.fillRect(c[0] - r * 2, c[1] - r * 2, r * 4, r * 4); }
     mx.restore();
   }
 
   // ---- The whole scene ----
   function drawScene(dt) {
-    const bb = bbAt(T), v = bb.v, vIr = bright(rel(2000, T));
+    const bb = bbAt(T), v = bb.v, vIr = vIrOf(T), vUv = vUvOf(T);
     // a darkened lab
     const bg = mx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#0b0f15"); bg.addColorStop(1, "#141a22");
     mx.fillStyle = bg; mx.fillRect(0, 0, W, H);
@@ -341,7 +361,7 @@ import "./blackbody.css";
     if (beamA > 0.01) { const a = Pv(ENTRY), b = Pv(EXIT); mx.save(); mx.globalCompositeOperation = "lighter"; mx.strokeStyle = css(ec, beamA * 0.8); mx.lineWidth = 3; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke(); mx.restore(); }
     // beam from the hole to the prism
     const hole = [WALL.x1, BH, 0];
-    drawBeam(hole, ENTRY, ec, beamA, gog ? irRGB(0.3 + 0.65 * vIr) : null, vIr);
+    drawBeam(hole, ENTRY, ec, beamA, [gog && [irRGB(0.3 + 0.65 * vIr), vIr, 0], ugog && [uvRGB(0.3 + 0.65 * vUv), vUv, 5.5]]);
     [[0, 1], [1, 2], [2, 0]].forEach(([i, j]) => face([lo[i], lo[j], hi[j], hi[i]], "rgba(170,210,255,0.08)", "rgba(190,225,255,0.35)"));
     face(hi, "rgba(190,225,255,0.14)", "rgba(210,235,255,0.7)", 1.2);
 
@@ -350,12 +370,13 @@ import "./blackbody.css";
     const { x0, x1, y0, y1, z0, z1 } = WALL;
     const leftFace = [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]];
     face(leftFace, "#3a4049");
-    if (v > 0 || (gog && vIr > 0.05)) { // lit by the rock
+    if (v > 0 || (gog && vIr > 0.05) || (ugog && vUv > 0.05)) { // lit by the rock
       const c = Pv([x0, ROCK.y, ROCK.z]);
       mx.save(); path(leftFace); mx.clip(); mx.globalCompositeOperation = "lighter";
       const g = mx.createRadialGradient(c[0], c[1], 0, c[0], c[1], 120 + 140 * v);
       if (v > 0) { g.addColorStop(0, css(bb.rgb, 0.6 * smooth(v * 1.8))); g.addColorStop(1, css(bb.rgb, 0)); mx.fillStyle = g; mx.fillRect(0, 0, W, H); }
       if (gog && vIr > 0.05) { const g2 = mx.createRadialGradient(c[0], c[1], 0, c[0], c[1], 160); const ic = irRGB(0.3 + 0.6 * vIr); g2.addColorStop(0, css(ic, 0.5 * vIr)); g2.addColorStop(1, css(ic, 0)); mx.fillStyle = g2; mx.fillRect(0, 0, W, H); }
+      if (ugog && vUv > 0.05) { const g3 = mx.createRadialGradient(c[0], c[1], 0, c[0], c[1], 160); const uc = uvRGB(0.3 + 0.6 * vUv); g3.addColorStop(0, css(uc, 0.45 * vUv)); g3.addColorStop(1, css(uc, 0)); mx.fillStyle = g3; mx.fillRect(0, 0, W, H); }
       mx.restore();
     }
     face([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], "#2b3037");
@@ -380,23 +401,31 @@ import "./blackbody.css";
     lab("Screen", onScreen(0.5, SY1 + 3.5));
 
     // goggles overlay
-    if (gog) {
+    if (gog || ugog) {
       const g = mx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, W * 0.62);
       g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.6)"); mx.fillStyle = g; mx.fillRect(0, 0, W, H);
-      pill("Infrared goggles on: infrared shown in false colour", 16, H - 22, { align: "left", color: "#9dffa8" });
+      let y = H - 22;
+      if (ugog) { pill("Ultraviolet goggles on: ultraviolet shown in false colour", 16, y, { align: "left", color: "#9eeeff" }); y -= 32; }
+      if (gog) pill("Infrared goggles on: infrared shown in false colour", 16, y, { align: "left", color: "#9dffa8" });
     }
     const pre = nearest();
     pill(`Rock: ${fmtC(T)}` + (pre ? `  ·  about as hot as ${pre}` : ""), 16, 24, { align: "left" });
   }
 
-  function drawBeam(a3, b3, c, alpha, ir, vIr) {
+  function drawBeam(a3, b3, c, alpha, extras) {
     const a = Pv(a3), b = Pv(b3), w = 2 * WALL.hole * a[3] * 0.9;
     mx.save(); mx.globalCompositeOperation = "lighter"; mx.lineCap = "round";
     if (alpha > 0.01) {
       mx.strokeStyle = css(c, alpha * 0.25); mx.lineWidth = w * 1.8; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
       mx.strokeStyle = css(c, alpha * 0.8); mx.lineWidth = w * 0.7; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
     }
-    if (ir && vIr > 0.05) { mx.setLineDash([6, 5]); mx.lineDashOffset = -time * 40; mx.strokeStyle = css(ir, 0.7 * vIr); mx.lineWidth = w * 0.5; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke(); }
+    // invisible radiation in the beam, seen through the goggles, as moving dashes
+    for (const e of extras) {
+      if (!e || e[1] <= 0.05) continue;
+      const [col, vv, ph] = e;
+      mx.setLineDash([6, 5]); mx.lineDashOffset = -time * 40 + ph; mx.strokeStyle = css(col, 0.7 * vv); mx.lineWidth = w * 0.5;
+      mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke();
+    }
     mx.restore();
   }
 
@@ -550,18 +579,19 @@ import "./blackbody.css";
     pill(fmtC(T), G.r, 22, { dark: false, align: "right" });
 
     // the screen, laid out on the same wavelength scale as the graph
-    const key = T.toFixed(1) + gog;
+    const key = T.toFixed(1) + gog + ugog;
     if (key !== linKey) {
       linKey = key; const n = Math.round(G.r - G.l);
       linStrip = linStrip || document.createElement("canvas"); linStrip.width = n; linStrip.height = 1;
       const c = linStrip.getContext("2d"), img = c.createImageData(n, 1);
-      for (let i = 0; i < n; i++) { const col = screenRGB((i + 0.5) / n * G.lmax, T, gog); img.data.set([col[0] * 255, col[1] * 255, col[2] * 255, 255], i * 4); }
+      for (let i = 0; i < n; i++) { const col = screenRGB((i + 0.5) / n * G.lmax, T, gog, ugog); img.data.set([col[0] * 255, col[1] * 255, col[2] * 255, 255], i * 4); }
       c.putImageData(img, 0, 0);
     }
     rr(mx, G.l - 2, G.sy0 - 14, G.r - G.l + 4, G.sy1 - G.sy0 + 16, 6); mx.fillStyle = "#08090b"; mx.fill();
     mx.imageSmoothingEnabled = true; mx.drawImage(linStrip, G.l, G.sy0 - 4, G.r - G.l, G.sy1 - G.sy0);
     mx.font = `700 11px ${FONT}`; mx.fillStyle = "rgba(205,215,228,0.85)"; mx.textAlign = "left"; mx.textBaseline = "middle";
-    mx.fillText(gog ? "The screen, spread out to match the graph (infrared goggles on)" : "The screen, spread out to match the graph", G.l + 6, G.sy0 - 8);
+    const gl = [gog && "infrared", ugog && "ultraviolet"].filter(Boolean).join(" and ");
+    mx.fillText("The screen, spread out to match the graph" + (gl ? ` (${gl} goggles on)` : ""), G.l + 6, G.sy0 - 8);
   }
 
   // ================= Text and controls =================
@@ -583,6 +613,8 @@ import "./blackbody.css";
 
   const gogBtn = document.getElementById("gogBtn");
   gogBtn.addEventListener("click", () => { gog = !gog; gogBtn.setAttribute("aria-pressed", gog); document.getElementById("gogTog").classList.toggle("on", gog); });
+  const uvBtn = document.getElementById("uvBtn");
+  uvBtn.addEventListener("click", () => { ugog = !ugog; uvBtn.setAttribute("aria-pressed", ugog); document.getElementById("uvTog").classList.toggle("on", ugog); });
   const refBtn = document.getElementById("refBtn");
   refBtn.addEventListener("click", () => { refs = !refs; refBtn.setAttribute("aria-pressed", refs); document.getElementById("refTog").classList.toggle("on", refs); });
   document.querySelectorAll("[data-scale]").forEach(b => b.addEventListener("click", () => {
