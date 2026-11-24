@@ -476,14 +476,13 @@ import "./blackbody.css";
 
   // A subtle arrow on the screen, pointing down at the peak of the spectrum (Wien's law), visible or not.
   function drawPeakArrow(u) {
-    mx.save(); mx.font = `700 11px ${FONT}`; mx.textAlign = "center"; mx.textBaseline = "bottom";
+    mx.save(); mx.font = `700 14px ${FONT}`; mx.textAlign = "center"; mx.textBaseline = "bottom";
     const col = "rgba(235,240,248,0.6)";
     if (u === null) { // cooler than about 550 °C: the peak is further into the infrared than the screen reaches
-      // shown off the right-hand edge of the screen, level with the spectrum, where the peak would land
-      const p = Pv(onScreen(1.075, BH)), lines = ["peak radiation", "beyond the", "screen →"];
-      const w = Math.max(...lines.map(t => mx.measureText(t).width)), x = Math.min(p[0], W - 6 - w);
-      mx.fillStyle = col; mx.textAlign = "left"; mx.textBaseline = "middle";
-      lines.forEach((t, i) => mx.fillText(t, x, p[1] + (i - 1) * 14));
+      // shown just below the right-hand end of the screen (there is no room beside it), pointing off the end
+      const p = Pv(onScreen(1.04, SY0 - 2.5));
+      mx.fillStyle = col; mx.textAlign = "right"; mx.textBaseline = "top";
+      mx.fillText("peak radiation: beyond the screen →", Math.min(p[0], W - 8), p[1]);
       mx.restore(); return;
     }
     const tip = Pv(onScreen(u, BH + BAND + 0.6)), tail = Pv(onScreen(u, BH + BAND + 7));
