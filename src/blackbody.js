@@ -182,8 +182,21 @@ import "./blackbody.css";
   const BH = 15;                                        // height of the beam above the bench
   const ROCK = { x: -60, y: BH, z: 0, r: 7.5 };
   const WALL = { x0: -40, x1: -36, y0: 0, y1: 34, z0: -26, z1: 20, hole: 2.6 };
-  const PR = { cx: 0, y0: 8.5, y1: 21.5, a: [0, 7.2], b: [-6.2, -3.6], c: [6.2, -3.6] }; // prism: triangle in the x–z plane
-  const ENTRY = [-4.2, BH, 0], EXIT = [3.6, BH, -0.9];
+  // The prism: an equilateral triangle in the x–z plane, turned 20° anticlockwise (seen from above) so the light
+  // crosses the glass parallel to its base, close to the textbook "minimum deviation" position.
+  const PR_ROT = 20 * Math.PI / 180;
+  const rotXZ = ([x, z]) => [x * Math.cos(PR_ROT) + z * Math.sin(PR_ROT), -x * Math.sin(PR_ROT) + z * Math.cos(PR_ROT)];
+  const PR = { cx: 0, y0: 8.5, y1: 21.5, a: rotXZ([0, 7.2]), b: rotXZ([-6.2, -3.6]), c: rotXZ([6.2, -3.6]) };
+  // where the beam (along z = 0) enters face AB, then travels parallel to the base BC until it leaves through face AC
+  function hitSeg(p, d, s0, s1) { // ray p + t d meets segment s0–s1
+    const ex = s1[0] - s0[0], ez = s1[1] - s0[1], den = d[0] * ez - d[1] * ex;
+    const t = ((s0[0] - p[0]) * ez - (s0[1] - p[1]) * ex) / den;
+    return [p[0] + d[0] * t, p[1] + d[1] * t];
+  }
+  const IN_XZ = hitSeg([-20, 0], [1, 0], PR.a, PR.b);
+  const BASE = [PR.c[0] - PR.b[0], PR.c[1] - PR.b[1]];
+  const OUT_XZ = hitSeg(IN_XZ, BASE, PR.a, PR.c);
+  const ENTRY = [IN_XZ[0], BH, IN_XZ[1]], EXIT = [OUT_XZ[0], BH, OUT_XZ[1]];
   const SDIR = [Math.cos(0.74), 0, -Math.sin(0.74)];       // from the prism to the middle of the screen
   const SC = add(EXIT, SDIR, 50);                       // centre of the screen at beam height
   const SW_ = 92, SY0 = 3, SY1 = 38;                    // screen width, bottom and top
@@ -397,7 +410,7 @@ import "./blackbody.css";
     drawThermometer(dt);
 
     // prism on a little stand
-    box(-5, 5, 0, PR.y0, -4.5, 6, ["#2a2e35", "#23272d", "#383d45"]);
+    box(-7.5, 5.5, 0, PR.y0, -6.5, 7.5, ["#2a2e35", "#23272d", "#383d45"]);
     const tri = y => [PR.a, PR.b, PR.c].map(([x, z]) => [PR.cx + x, y, z]);
     const lo = tri(PR.y0), hi = tri(PR.y1);
     // light inside the glass
