@@ -564,7 +564,7 @@ import "./blackbody.css";
 
   // ================= The graph =================
   // the plot's bottom edge moves down to use the space when the screen strip is hidden
-  const G = { l: 92, r: 1062, t: 62, b: 400, sy0: 440, sy1: 482, lmax: 3500 };
+  const G = { l: 92, r: 1062, t: 62, b: 400, sy0: 446, sy1: 486, lmax: 3500 };
   let showScr = false;
   const gx = nm => G.l + (G.r - G.l) * nm / G.lmax;
   const STEP = 5;
@@ -649,13 +649,13 @@ import "./blackbody.css";
     mx.fillStyle = vg; mx.fillRect(vis0, G.t, vis1 - vis0, G.b - G.t);
     mx.fillStyle = "rgba(196,90,60,0.05)"; mx.fillRect(vis1, G.t, G.r - vis1, G.b - G.t);
     mx.fillStyle = "rgba(120,80,200,0.06)"; mx.fillRect(G.l, G.t, vis0 - G.l, G.b - G.t);
-    mx.font = `800 11px ${FONT}`; mx.textBaseline = "bottom"; mx.textAlign = "center";
+    mx.font = `800 14px ${FONT}`; mx.textBaseline = "bottom"; mx.textAlign = "center";
     mx.fillStyle = "#6b53b8"; mx.fillText("UV", (G.l + vis0) / 2, G.t - 4);
     mx.fillStyle = "#4c5a6b"; mx.fillText("VISIBLE", (vis0 + vis1) / 2, G.t - 4);
     mx.fillStyle = "#a2452b"; mx.fillText("INFRARED", (vis1 + G.r) / 2, G.t - 4);
 
     // gridlines and y-axis labels
-    mx.font = `600 12px ${FONT}`; mx.textAlign = "right"; mx.textBaseline = "middle"; mx.lineWidth = 1;
+    mx.font = `600 15px ${FONT}`; mx.textAlign = "right"; mx.textBaseline = "middle"; mx.lineWidth = 1;
     if (scale === "log") {
       for (let e = -5; e <= 3; e++) {
         const y = Y(10 ** e); mx.strokeStyle = e === 0 ? "#c9d0d8" : "#e6e9ed"; mx.beginPath(); mx.moveTo(G.l, y); mx.lineTo(G.r, y); mx.stroke();
@@ -676,7 +676,7 @@ import "./blackbody.css";
       mx.fillStyle = "#59636f"; mx.fillText((nm / 1000).toFixed(1), x, G.b + 8);
     }
     mx.strokeStyle = "#202020"; mx.lineWidth = 1.5; mx.beginPath(); mx.moveTo(G.l, G.t - 6); mx.lineTo(G.l, G.b); mx.lineTo(G.r + 6, G.b); mx.stroke();
-    mx.font = `700 13px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, showScr ? G.sy1 + 10 : G.b + 30);
+    mx.font = `700 16px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, showScr ? G.sy1 + 12 : G.b + 32);
     mx.save(); mx.translate(28, (G.t + G.b) / 2); mx.rotate(-Math.PI / 2); mx.textBaseline = "middle";
     mx.fillText(real ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
 
