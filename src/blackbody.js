@@ -711,8 +711,8 @@ import "./blackbody.css";
       if (y < G.t - 2 || y > G.b - 12) return;
       const short = { "red-hot coal": "red-hot coal", "a candle flame": "candle", "a lamp filament": "lamp", "the surface of the Sun": "Sun", "a hot blue star": "hot star", "room temperature": "room", "a hot plate": "hot plate" }[name] || name;
       // a curve whose peak is beyond the right-hand edge is labelled where it leaves the graph
-      if (peakNm(t) > G.lmax) pill(short, G.r - 4, y - 14, { dark: false, size: 11, color: "#59636f", align: "right" });
-      else pill(short, gx(pk), y - 14, { dark: false, size: 11, color: "#59636f" });
+      if (peakNm(t) > G.lmax) pill(short, G.r - 4, y - 17, { dark: false, size: 14, color: "#59636f", align: "right" });
+      else pill(short, gx(pk), y - 17, { dark: false, size: 14, color: "#59636f" });
     });
 
     // the peak of the current curve (Wien's law)
