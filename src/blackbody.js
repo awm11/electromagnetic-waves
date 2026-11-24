@@ -564,7 +564,7 @@ import "./blackbody.css";
 
   // ================= The graph =================
   // the plot's bottom edge moves down to use the space when the screen strip is hidden
-  const G = { l: 92, r: 1062, t: 62, b: 400, sy0: 446, sy1: 486, lmax: 3500 };
+  const G = { l: 104, r: 1062, t: 66, b: 398, sy0: 448, sy1: 486, lmax: 3500 };
   let showScr = false;
   const gx = nm => G.l + (G.r - G.l) * nm / G.lmax;
   const STEP = 5;
@@ -616,7 +616,7 @@ import "./blackbody.css";
   }
   function drawGraph() {
     mx.fillStyle = "#ffffff"; mx.fillRect(0, 0, W, H);
-    G.b = showScr ? 400 : 476;
+    G.b = showScr ? 398 : 472;
     // Every scale compares the rock's curve with coal, candle, lamp and Sun (dashed). On the dynamic scale the axis
     // follows the rock's curve alone, so the comparison curves can run off the top.
     const real = scale === "sun" || scale === "dynamic";
@@ -649,13 +649,13 @@ import "./blackbody.css";
     mx.fillStyle = vg; mx.fillRect(vis0, G.t, vis1 - vis0, G.b - G.t);
     mx.fillStyle = "rgba(196,90,60,0.05)"; mx.fillRect(vis1, G.t, G.r - vis1, G.b - G.t);
     mx.fillStyle = "rgba(120,80,200,0.06)"; mx.fillRect(G.l, G.t, vis0 - G.l, G.b - G.t);
-    mx.font = `800 14px ${FONT}`; mx.textBaseline = "bottom"; mx.textAlign = "center";
+    mx.font = `800 17px ${FONT}`; mx.textBaseline = "bottom"; mx.textAlign = "center";
     mx.fillStyle = "#6b53b8"; mx.fillText("UV", (G.l + vis0) / 2, G.t - 4);
     mx.fillStyle = "#4c5a6b"; mx.fillText("VISIBLE", (vis0 + vis1) / 2, G.t - 4);
     mx.fillStyle = "#a2452b"; mx.fillText("INFRARED", (vis1 + G.r) / 2, G.t - 4);
 
     // gridlines and y-axis labels
-    mx.font = `600 15px ${FONT}`; mx.textAlign = "right"; mx.textBaseline = "middle"; mx.lineWidth = 1;
+    mx.font = `600 18px ${FONT}`; mx.textAlign = "right"; mx.textBaseline = "middle"; mx.lineWidth = 1;
     if (scale === "log") {
       for (let e = -5; e <= 3; e++) {
         const y = Y(10 ** e); mx.strokeStyle = e === 0 ? "#c9d0d8" : "#e6e9ed"; mx.beginPath(); mx.moveTo(G.l, y); mx.lineTo(G.r, y); mx.stroke();
@@ -676,7 +676,7 @@ import "./blackbody.css";
       mx.fillStyle = "#59636f"; mx.fillText((nm / 1000).toFixed(1), x, G.b + 8);
     }
     mx.strokeStyle = "#202020"; mx.lineWidth = 1.5; mx.beginPath(); mx.moveTo(G.l, G.t - 6); mx.lineTo(G.l, G.b); mx.lineTo(G.r + 6, G.b); mx.stroke();
-    mx.font = `700 16px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, showScr ? G.sy1 + 12 : G.b + 32);
+    mx.font = `700 19px ${FONT}`; mx.fillStyle = "#202020"; mx.fillText("wavelength (µm)", (G.l + G.r) / 2, showScr ? G.sy1 + 10 : G.b + 34);
     mx.save(); mx.translate(28, (G.t + G.b) / 2); mx.rotate(-Math.PI / 2); mx.textBaseline = "middle";
     mx.fillText(real ? "intensity (Sun's peak = 100)" : scale === "log" ? "intensity (log scale)" : "intensity (% of its own peak)", 0, 0); mx.restore();
 
@@ -711,8 +711,8 @@ import "./blackbody.css";
       if (y < G.t - 2 || y > G.b - 12) return;
       const short = { "red-hot coal": "red-hot coal", "a candle flame": "candle", "a lamp filament": "lamp", "the surface of the Sun": "Sun", "a hot blue star": "hot star", "room temperature": "room", "a hot plate": "hot plate" }[name] || name;
       // a curve whose peak is beyond the right-hand edge is labelled where it leaves the graph
-      if (peakNm(t) > G.lmax) pill(short, G.r - 4, y - 17, { dark: false, size: 14, color: "#59636f", align: "right" });
-      else pill(short, gx(pk), y - 17, { dark: false, size: 14, color: "#59636f" });
+      if (peakNm(t) > G.lmax) pill(short, G.r - 4, y - 20, { dark: false, size: 17, color: "#59636f", align: "right" });
+      else pill(short, gx(pk), y - 20, { dark: false, size: 17, color: "#59636f" });
     });
 
     // the peak of the current curve (Wien's law)
