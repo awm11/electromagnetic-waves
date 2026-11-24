@@ -200,6 +200,12 @@ import "./blackbody.css";
   const BASE = [PR.c[0] - PR.b[0], PR.c[1] - PR.b[1]];
   const OUT_XZ = hitSeg(IN_XZ, BASE, PR.a, PR.c);
   const ENTRY = [IN_XZ[0], BH, IN_XZ[1]], EXIT = [OUT_XZ[0], BH, OUT_XZ[1]];
+  // The colours already begin to separate inside the glass, so they leave the far face spread over a short distance:
+  // violet and ultraviolet (bent most) nearer the base, red and infrared nearer the top corner.
+  const AC_LEN = Math.hypot(PR.c[0] - PR.a[0], PR.c[1] - PR.a[1]);
+  const AC_DIR = [(PR.c[0] - PR.a[0]) / AC_LEN, 0, (PR.c[1] - PR.a[1]) / AC_LEN];
+  const EXIT_SPREAD = 3.2;
+  const exitAt = u => add(EXIT, AC_DIR, EXIT_SPREAD * (0.5 - u));
   const SDIR = [Math.cos(0.74), 0, -Math.sin(0.74)];       // from the prism to the middle of the screen
   const SW_ = 92, SY0 = 3, SY1 = 38;                    // screen width, bottom and top
   const SU = [Math.sin(0.74), 0, Math.cos(0.74)];         // along the screen, from the ultraviolet end to the infrared end
@@ -381,16 +387,16 @@ import "./blackbody.css";
     // ray visibly reaches its own colour, and fades out inside the band (the fade runs parallel to the band, so it
     // leaves no edge or sawtooth across the spectrum).
     mx.save(); mx.globalCompositeOperation = "lighter";
-    const E = Pv(EXIT), NF = 40;
+    const NF = 40;
     for (let k = 0; k < NF; k++) {
       const um = (k + 0.5) / NF, c = cols[Math.floor(um * SPX)];
       if (c[0] + c[1] + c[2] < 0.01) continue;
-      const a = Pv(onScreen(k / NF, BH)), b = Pv(onScreen((k + 1) / NF, BH));
+      const a = Pv(onScreen(k / NF, BH)), b = Pv(onScreen((k + 1) / NF, BH)), e0 = Pv(exitAt(k / NF)), e1 = Pv(exitAt((k + 1) / NF));
       const lo = Pv(onScreen(um, BH - BAND)), hi = Pv(onScreen(um, BH - BAND * 0.2));
       const g = mx.createLinearGradient(lo[0], lo[1], hi[0], hi[1]);
       g.addColorStop(0, css(c, 0.16)); g.addColorStop(1, css(c, 0));
       mx.fillStyle = g;
-      mx.beginPath(); mx.moveTo(E[0], E[1]); mx.lineTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.closePath(); mx.fill();
+      mx.beginPath(); mx.moveTo(e0[0], e0[1]); mx.lineTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.lineTo(e1[0], e1[1]); mx.closePath(); mx.fill();
     }
     mx.restore();
 
@@ -420,7 +426,19 @@ import "./blackbody.css";
     const lo = tri(PR.y0), hi = tri(PR.y1);
     // light inside the glass
     const ec = bb.rgb.map(k => k * (0.35 + 0.65 * v)), beamA = 0.85 * smooth(v * 2.2);
-    if (beamA > 0.01) { const a = Pv(ENTRY), b = Pv(EXIT); mx.save(); mx.globalCompositeOperation = "lighter"; mx.strokeStyle = css(ec, beamA * 0.8); mx.lineWidth = 3; mx.beginPath(); mx.moveTo(a[0], a[1]); mx.lineTo(b[0], b[1]); mx.stroke(); mx.restore(); }
+    {
+      // the beam enters as one colour and starts to spread into a narrow fan before it leaves the glass
+      const A = Pv(ENTRY), NG = 24;
+      mx.save(); mx.globalCompositeOperation = "lighter";
+      for (let k = 0; k < NG; k++) {
+        const c = cols[Math.floor((k + 0.5) / NG * SPX)];
+        if (c[0] + c[1] + c[2] < 0.01) continue;
+        const e0 = Pv(exitAt(k / NG)), e1 = Pv(exitAt((k + 1) / NG));
+        mx.fillStyle = css(c, 0.5);
+        mx.beginPath(); mx.moveTo(A[0], A[1]); mx.lineTo(e0[0], e0[1]); mx.lineTo(e1[0], e1[1]); mx.closePath(); mx.fill();
+      }
+      mx.restore();
+    }
     // beam from the hole to the prism
     const hole = [WALL.x1, BH, 0];
     drawBeam(hole, ENTRY, ec, beamA, [gog && [irRGB(0.3 + 0.65 * vIr), vIr, 0], ugog && [uvRGB(0.3 + 0.65 * vUv), vUv, 5.5]]);
