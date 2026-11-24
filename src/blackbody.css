@@ -8,9 +8,14 @@
 .controls.bbControls .ctrlRow { gap: 10px 22px; flex-wrap: wrap; }
 .controls.bbControls .toggles { gap: 8px 18px; margin-left: auto; flex-wrap: wrap; }
 .controls.bbControls > .status { justify-self: end; width: auto; }
-/* the selected graph scale pill is violet, so it reads as a different kind of choice from the blue "As hot as" pills */
-.controls.bbControls .scaleRow .seg.on { background: #ece5ff; border-color: #7353d6; color: #5b3cc4; }
-.controls.bbControls .scaleRow .seg:focus-visible { outline-color: #7353d6; }
+/* the graph scale is a segmented control: one joined bar, one option always selected (in violet), so it reads as a
+   setting rather than a row of action buttons like "As hot as" */
+.controls.bbControls .segBar { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 99px; overflow: hidden; background: #fff; }
+.controls.bbControls .segBar .seg { border: 0; border-radius: 0; background: transparent; margin: 0; }
+.controls.bbControls .segBar .seg + .seg { border-left: 1px solid var(--line-strong); }
+.controls.bbControls .segBar .seg.on { background: #ece5ff; color: #5b3cc4; box-shadow: inset 0 0 0 2px #7353d6; }
+.controls.bbControls .segBar .seg.on + .seg { border-left-color: transparent; }
+.controls.bbControls .segBar .seg:focus-visible { outline: 2px solid #7353d6; outline-offset: -3px; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
 .tempRow .barLabel { margin-right: 0; flex: 0 0 auto; white-space: nowrap; }
 .tRead { flex: 0 0 auto; min-width: 190px; white-space: nowrap; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }

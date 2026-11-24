@@ -48,10 +48,12 @@
       <div class="btnRow ctrlRow">
         <div class="graphOnly btnRow scaleRow" role="group" aria-label="Scale of the graph" hidden>
           <span class="barLabel">Graph scale</span>
-          <button class="seg on" data-scale="sun" title="The Sun scale: real heights, compared with coal, a candle, a lamp and the Sun">Sun</button>
-          <button class="seg" data-scale="dynamic" title="Dynamic scale: real heights; the scale follows the rock's curve, holding steady, then changing when the curve outgrows it">Dynamic</button>
-          <button class="seg" data-scale="log" title="Logarithmic scale: each gridline up is 10 times more, the same scale as the brightness on the screen">Logarithmic</button>
-          <button class="seg" data-scale="norm" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
+          <div class="segBar">
+          <button class="seg on" data-scale="sun" aria-pressed="true" title="The Sun scale: real heights, compared with coal, a candle, a lamp and the Sun">Sun</button>
+          <button class="seg" data-scale="dynamic" aria-pressed="false" title="Dynamic scale: real heights; the scale follows the rock's curve, holding steady, then changing when the curve outgrows it">Dynamic</button>
+          <button class="seg" data-scale="log" aria-pressed="false" title="Logarithmic scale: each gridline up is 10 times more, the same scale as the brightness on the screen">Logarithmic</button>
+          <button class="seg" data-scale="norm" aria-pressed="false" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
+          </div>
         </div>
         <div class="btnRow toggles">
           <button class="switchBtn graphOnly" id="scrBtn" aria-pressed="false" title="Show the screen's spectrum under the graph, on the same wavelength scale" hidden><span class="toggle" id="scrTog"><span class="knob"></span></span>Screen</button>

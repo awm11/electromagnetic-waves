@@ -777,7 +777,7 @@ import "./blackbody.css";
   const uvBtn = document.getElementById("uvBtn");
   uvBtn.addEventListener("click", () => { ugog = !ugog; uvBtn.setAttribute("aria-pressed", ugog); document.getElementById("uvTog").classList.toggle("on", ugog); });
   document.querySelectorAll("[data-scale]").forEach(b => b.addEventListener("click", () => {
-    scale = b.dataset.scale; document.querySelectorAll("[data-scale]").forEach(x => x.classList.toggle("on", x === b));
+    scale = b.dataset.scale; document.querySelectorAll("[data-scale]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
   }));
   function setView(v) {
     view = v === "graph" ? "graph" : "prism";
