@@ -15,6 +15,9 @@
 .controls.bbControls .segBar .seg + .seg { border-left: 1px solid var(--line-strong); }
 .controls.bbControls .segBar .seg.on { background: #ece5ff; color: #5b3cc4; box-shadow: inset 0 0 0 2px #7353d6; }
 .controls.bbControls .segBar .seg.on + .seg { border-left-color: transparent; }
+/* the end options are rounded on their outer side, so the selected outline follows the bar's curve */
+.controls.bbControls .segBar .seg:first-child { border-radius: 99px 0 0 99px; }
+.controls.bbControls .segBar .seg:last-child { border-radius: 0 99px 99px 0; }
 .controls.bbControls .segBar .seg:focus-visible { outline: 2px solid #7353d6; outline-offset: -3px; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
 .tempRow .barLabel { margin-right: 0; flex: 0 0 auto; white-space: nowrap; }
