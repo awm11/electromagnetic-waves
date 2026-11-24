@@ -6,6 +6,7 @@
 .controls.bbControls > * { width: 100%; min-width: 0; }
 /* graph scale pills on the left, toggles on the right of the same line (wrapping only if the window is narrow) */
 .controls.bbControls .ctrlRow { gap: 10px 22px; flex-wrap: wrap; }
+.controls.bbControls .presets { justify-content: center; }
 .controls.bbControls .toggles { gap: 8px 18px; margin-left: auto; flex-wrap: wrap; }
 .controls.bbControls > .status { justify-self: end; width: auto; }
 /* the graph scale is a segmented control: one joined bar, one option always selected (in violet), so it reads as a
