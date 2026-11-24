@@ -201,9 +201,11 @@ import "./blackbody.css";
   const OUT_XZ = hitSeg(IN_XZ, BASE, PR.a, PR.c);
   const ENTRY = [IN_XZ[0], BH, IN_XZ[1]], EXIT = [OUT_XZ[0], BH, OUT_XZ[1]];
   const SDIR = [Math.cos(0.74), 0, -Math.sin(0.74)];       // from the prism to the middle of the screen
-  const SC = add(EXIT, SDIR, 50);                       // centre of the screen at beam height
   const SW_ = 92, SY0 = 3, SY1 = 38;                    // screen width, bottom and top
   const SU = [Math.sin(0.74), 0, Math.cos(0.74)];         // along the screen, from the ultraviolet end to the infrared end
+  // centre of the screen at beam height: 50 cm from the prism, slid 9.5 cm along itself (to the right) so both feet
+  // stand on the bench; the rays are aimed at the screen, so they follow it
+  const SC = add(add(EXIT, SDIR, 50), SU, 9.5);
   const SN = [-SDIR[0], 0, -SDIR[2]];                   // the screen faces back towards the prism
   const BAND = 5;                                     // half-height of the spectrum on the screen
   const onScreen = (u, y, off = 0) => add(add([SC[0], y, SC[2]], SU, (u - 0.5) * SW_ * 0.92), SN, off);
