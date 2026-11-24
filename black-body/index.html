@@ -45,19 +45,21 @@
         <button class="seg" data-t="5500">Surface of the Sun</button>
         <button class="seg" data-t="10000">Hot blue star</button>
       </div>
-      <div class="graphOnly btnRow scaleRow" role="group" aria-label="Scale of the graph" hidden>
-        <span class="barLabel">Graph scale</span>
-        <button class="seg on" data-scale="sun" title="Real heights, compared with coal, a candle, a lamp and the Sun">The Sun scale</button>
-        <button class="seg" data-scale="dynamic" title="Real heights; the scale follows the rock's curve, holding steady, then changing when the curve outgrows it">Dynamic scale</button>
-        <button class="seg" data-scale="log" title="Each gridline up is 10 times more, the same scale as the brightness on the screen">Logarithmic scale</button>
-        <button class="seg" data-scale="norm" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
+      <div class="btnRow ctrlRow">
+        <div class="graphOnly btnRow scaleRow" role="group" aria-label="Scale of the graph" hidden>
+          <span class="barLabel">Graph scale</span>
+          <button class="seg on" data-scale="sun" title="The Sun scale: real heights, compared with coal, a candle, a lamp and the Sun">Sun</button>
+          <button class="seg" data-scale="dynamic" title="Dynamic scale: real heights; the scale follows the rock's curve, holding steady, then changing when the curve outgrows it">Dynamic</button>
+          <button class="seg" data-scale="log" title="Logarithmic scale: each gridline up is 10 times more, the same scale as the brightness on the screen">Logarithmic</button>
+          <button class="seg" data-scale="norm" title="Every curve stretched to the same peak height, to compare shapes">Same peak height</button>
+        </div>
+        <div class="btnRow toggles">
+          <button class="switchBtn graphOnly" id="scrBtn" aria-pressed="false" title="Show the screen's spectrum under the graph, on the same wavelength scale" hidden><span class="toggle" id="scrTog"><span class="knob"></span></span>Screen</button>
+          <button class="switchBtn" id="gogBtn" aria-pressed="false" title="Infrared goggles: see the infrared in false colour"><span class="toggle" id="gogTog"><span class="knob"></span></span>IR goggles</button>
+          <button class="switchBtn" id="uvBtn" aria-pressed="false" title="Ultraviolet goggles: see the ultraviolet in false colour"><span class="toggle" id="uvTog"><span class="knob"></span></span>UV goggles</button>
+        </div>
       </div>
-      <div class="btnRow toggles">
-        <button class="switchBtn graphOnly" id="scrBtn" aria-pressed="false" title="Show the screen's spectrum under the graph, on the same wavelength scale" hidden><span class="toggle" id="scrTog"><span class="knob"></span></span>Show screen</button>
-        <button class="switchBtn" id="gogBtn" aria-pressed="false" title="See the infrared in false colour"><span class="toggle" id="gogTog"><span class="knob"></span></span>Infrared goggles</button>
-        <button class="switchBtn" id="uvBtn" aria-pressed="false" title="See the ultraviolet in false colour"><span class="toggle" id="uvTog"><span class="knob"></span></span>Ultraviolet goggles</button>
-        <div class="status"><span class="dot on" id="dot"></span><span id="statusText"></span></div>
-      </div>
+      <div class="status"><span class="dot on" id="dot"></span><span id="statusText"></span></div>
     </div>
   </section>
 

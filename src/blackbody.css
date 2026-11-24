@@ -4,8 +4,14 @@
 /* ".controls.bbControls" (two classes) so these win over the shared .controls rules, whatever order the build puts them in */
 .controls.bbControls { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-items: center; gap: 12px; }
 .controls.bbControls > * { width: 100%; min-width: 0; }
-.controls.bbControls .toggles { gap: 8px 22px; }
-.controls.bbControls .toggles .status { margin-left: auto; }
+/* graph scale pills on the left, toggles on the right of the same line (wrapping only if the window is narrow) */
+.controls.bbControls .ctrlRow { gap: 10px 22px; flex-wrap: wrap; }
+.controls.bbControls .toggles { gap: 8px 18px; margin-left: auto; flex-wrap: wrap; }
+.controls.bbControls > .status { justify-self: end; width: auto; }
+/* the graph scale pills in violet, so they read as a different kind of choice from the blue "As hot as" pills */
+.controls.bbControls .scaleRow .seg { background: #faf8ff; border-color: #d8cff3; color: #4a3a86; }
+.controls.bbControls .scaleRow .seg.on { background: #ece5ff; border-color: #7353d6; color: #5b3cc4; }
+.controls.bbControls .scaleRow .seg:focus-visible { outline-color: #7353d6; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
 .tempRow .barLabel { margin-right: 0; flex: 0 0 auto; white-space: nowrap; }
 .tRead { flex: 0 0 auto; min-width: 190px; white-space: nowrap; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -42,7 +48,8 @@
 @media (max-width: 760px) {
   .seg.fsBtn { margin-left: 0; }
   .controls.bbControls { flex-direction: initial; align-items: center; }
-  .controls.bbControls .toggles .status { margin-left: 0; }
+  .controls.bbControls .toggles { margin-left: 0; }
+  .controls.bbControls > .status { justify-self: start; }
   .tRead { min-width: 0; }
 }
 #gogTog.on { background: #2d9b55; }
