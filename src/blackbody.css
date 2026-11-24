@@ -8,8 +8,7 @@
 .controls.bbControls .ctrlRow { gap: 10px 22px; flex-wrap: wrap; }
 .controls.bbControls .toggles { gap: 8px 18px; margin-left: auto; flex-wrap: wrap; }
 .controls.bbControls > .status { justify-self: end; width: auto; }
-/* the graph scale pills in violet, so they read as a different kind of choice from the blue "As hot as" pills */
-.controls.bbControls .scaleRow .seg { background: #faf8ff; border-color: #d8cff3; color: #4a3a86; }
+/* the selected graph scale pill is violet, so it reads as a different kind of choice from the blue "As hot as" pills */
 .controls.bbControls .scaleRow .seg.on { background: #ece5ff; border-color: #7353d6; color: #5b3cc4; }
 .controls.bbControls .scaleRow .seg:focus-visible { outline-color: #7353d6; }
 .tempRow { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
