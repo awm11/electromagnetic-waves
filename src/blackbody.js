@@ -186,7 +186,10 @@ import "./blackbody.css";
   // crosses the glass parallel to its base, close to the textbook "minimum deviation" position.
   const PR_ROT = 20 * Math.PI / 180;
   const rotXZ = ([x, z]) => [x * Math.cos(PR_ROT) + z * Math.sin(PR_ROT), -x * Math.sin(PR_ROT) + z * Math.cos(PR_ROT)];
-  const PR = { cx: 0, y0: 8.5, y1: 21.5, a: rotXZ([0, 7.2]), b: rotXZ([-6.2, -3.6]), c: rotXZ([6.2, -3.6]) };
+  // ...and slid sideways so the beam (along z = 0) meets the middle of the first face, crosses the glass and leaves
+  // from the middle of the far face, rather than near a corner
+  const PR0 = [rotXZ([0, 7.2]), rotXZ([-6.2, -3.6]), rotXZ([6.2, -3.6])], PR_DZ = -(PR0[0][1] + PR0[1][1]) / 2;
+  const PR = { cx: 0, cz: PR_DZ, y0: 8.5, y1: 21.5, a: [PR0[0][0], PR0[0][1] + PR_DZ], b: [PR0[1][0], PR0[1][1] + PR_DZ], c: [PR0[2][0], PR0[2][1] + PR_DZ] };
   // where the beam (along z = 0) enters face AB, then travels parallel to the base BC until it leaves through face AC
   function hitSeg(p, d, s0, s1) { // ray p + t d meets segment s0–s1
     const ex = s1[0] - s0[0], ez = s1[1] - s0[1], den = d[0] * ez - d[1] * ex;
@@ -410,7 +413,7 @@ import "./blackbody.css";
     drawThermometer(dt);
 
     // prism on a little stand
-    box(-7.5, 5.5, 0, PR.y0, -6.5, 7.5, ["#2a2e35", "#23272d", "#383d45"]);
+    box(-7.5, 5.5, 0, PR.y0, -6.5 + PR.cz, 7.5 + PR.cz, ["#2a2e35", "#23272d", "#383d45"]);
     const tri = y => [PR.a, PR.b, PR.c].map(([x, z]) => [PR.cx + x, y, z]);
     const lo = tri(PR.y0), hi = tri(PR.y1);
     // light inside the glass
